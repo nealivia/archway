@@ -46,9 +46,8 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-white/10 mt-10 pt-6 flex flex-col md:flex-row justify-between items-center gap-2 text-xs">
+        <div className="border-t border-white/10 mt-10 pt-6 text-center text-xs">
           <p>© 2025 松上防水. All rights reserved.</p>
-          <Link to="/admin/login" className="hover:text-primary transition-colors">後台管理</Link>
         </div>
       </div>
     </footer>
