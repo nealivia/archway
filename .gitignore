@@ -1,0 +1,25 @@
+# 依賴套件（不上傳）
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Build 輸出（Railway 會自動 build）
+backend/public/
+
+# 資料庫（重要！不上傳）
+backend/data.db
+backend/data.db-shm
+backend/data.db-wal
+backend/*.db
+
+# 環境變數（機密！不上傳）
+.env
+backend/.env
+
+# 上傳的圖片（需另外備份）
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# 系統檔案
+.DS_Store
+Thumbs.db
