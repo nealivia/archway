@@ -2,11 +2,14 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
+import toast from 'react-hot-toast'
 
 export default function Dashboard() {
   const { user } = useAuth()
   const [stats, setStats] = useState({ products: 0, active: 0, categories: 0 })
   const [recentProducts, setRecentProducts] = useState([])
+  const [maintenance, setMaintenance] = useState(false)
+  const [toggling, setToggling] = useState(false)
 
   useEffect(() => {
     api.get('/products/admin/all?limit=5').then(r => {
@@ -22,7 +25,24 @@ export default function Dashboard() {
     api.get('/categories').then(r => {
       setStats(s => ({ ...s, categories: (r.data || []).length }))
     }).catch(() => {})
+
+    api.get('/settings/maintenance').then(r => {
+      setMaintenance(r.maintenance || false)
+    }).catch(() => {})
   }, [])
+
+  const toggleMaintenance = async () => {
+    setToggling(true)
+    try {
+      const r = await api.post('/settings/maintenance', { enabled: !maintenance })
+      setMaintenance(r.maintenance)
+      toast.success(r.maintenance ? '✅ 維護模式已開啟' : '✅ 網站已恢復正常')
+    } catch {
+      toast.error('切換失敗')
+    } finally {
+      setToggling(false)
+    }
+  }
 
   const cards = [
     { label: '商品總數', value: stats.products, icon: '📦', to: '/admin/products', color: 'bg-blue-500' },
@@ -51,6 +71,28 @@ export default function Dashboard() {
           </Link>
         ))}
       </div>
+
+      {/* 維護模式開關 */}
+      {user?.role === 'super_admin' && (
+        <div className={`mb-6 p-5 rounded shadow-sm flex items-center justify-between ${maintenance ? 'bg-red-50 border border-red-200' : 'bg-white border border-gray-100'}`}>
+          <div>
+            <div className="font-semibold text-dark flex items-center gap-2">
+              🔧 網站維護模式
+              {maintenance && <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">開啟中</span>}
+            </div>
+            <p className="text-sm text-gray-500 mt-0.5">
+              {maintenance ? '訪客目前看到維護頁面，後台仍可正常使用' : '網站正常對外開放'}
+            </p>
+          </div>
+          <button
+            onClick={toggleMaintenance}
+            disabled={toggling}
+            className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-50 ${maintenance ? 'bg-red-500' : 'bg-gray-300'}`}
+          >
+            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200 ${maintenance ? 'translate-x-8' : 'translate-x-1'}`} />
+          </button>
+        </div>
+      )}
 
       {/* Quick actions */}
       <div className="grid md:grid-cols-2 gap-6">

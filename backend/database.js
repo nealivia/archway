@@ -2,7 +2,7 @@ const { DatabaseSync } = require('node:sqlite');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 
-const DB_PATH = path.join(__dirname, 'data.db');
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'data.db');
 const db = new DatabaseSync(DB_PATH);
 
 // 啟用 WAL 模式提升效能
@@ -48,6 +48,12 @@ function initDatabase() {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS activity_log (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER REFERENCES users(id),
@@ -86,6 +92,12 @@ function initDatabase() {
     console.log('║  請登入後立即至後台修改密碼！        ║');
     console.log('╚══════════════════════════════════════╝');
     console.log('');
+  }
+
+  // 初始化預設設定
+  const maintenanceSetting = db.prepare("SELECT value FROM settings WHERE key = 'maintenance_mode'").get();
+  if (!maintenanceSetting) {
+    db.prepare("INSERT INTO settings (key, value) VALUES ('maintenance_mode', 'false')").run();
   }
 
   console.log('✅ 資料庫初始化完成');

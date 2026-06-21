@@ -1,12 +1,15 @@
 import { Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './context/AuthContext'
+import { useState, useEffect } from 'react'
+import api from './api/client'
 
 // 前台頁面
 import Home from './pages/Home'
 import Products from './pages/Products'
 import ProductDetail from './pages/ProductDetail'
 import About from './pages/About'
+import Maintenance from './pages/Maintenance'
 
 // 後台頁面
 import AdminLogin from './pages/admin/Login'
@@ -19,6 +22,43 @@ import CategoriesAdmin from './pages/admin/CategoriesAdmin'
 import ProtectedRoute from './components/admin/ProtectedRoute'
 
 export default function App() {
+  const [maintenance, setMaintenance] = useState(false)
+  const [checked, setChecked] = useState(false)
+
+  useEffect(() => {
+    api.get('/settings/maintenance')
+      .then(r => setMaintenance(r.maintenance || false))
+      .catch(() => {})
+      .finally(() => setChecked(true))
+  }, [])
+
+  if (!checked) return null
+
+  // 維護模式：只開放後台路由
+  if (maintenance) {
+    return (
+      <AuthProvider>
+        <Toaster position="top-right" />
+        <Routes>
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={
+            <ProtectedRoute>
+              <AdminLayout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<Dashboard />} />
+            <Route path="products" element={<ProductsAdmin />} />
+            <Route path="products/new" element={<ProductForm />} />
+            <Route path="products/:id/edit" element={<ProductForm />} />
+            <Route path="categories" element={<CategoriesAdmin />} />
+            <Route path="users" element={<UsersAdmin />} />
+          </Route>
+          <Route path="*" element={<Maintenance />} />
+        </Routes>
+      </AuthProvider>
+    )
+  }
+
   return (
     <AuthProvider>
       <Toaster position="top-right" />
