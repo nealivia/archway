@@ -8,9 +8,10 @@ export default function Maintenance() {
         <h1 className="text-3xl font-bold text-white mb-4">網站維護中</h1>
         <p className="text-gray-300 text-lg mb-2">我們正在進行系統更新，請稍後再訪。</p>
         <p className="text-gray-400 text-sm">We'll be back shortly.</p>
-        <div className="mt-10 text-gray-500 text-sm">
+        <div className="mt-10 text-gray-500 text-sm space-y-1">
           <p>📞 02-23650047</p>
-          <p className="mt-1">✉️ archway1991@gmail.com</p>
+          <p>💬 LINE：@archway</p>
+          <p>✉️ archway1991@gmail.com</p>
         </div>
       </div>
     </div>
