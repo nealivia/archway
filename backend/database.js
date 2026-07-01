@@ -38,8 +38,7 @@ function initDatabase() {
       description TEXT,
       features TEXT DEFAULT '[]',
       applications TEXT DEFAULT '[]',
-      price REAL,
-      price_unit TEXT DEFAULT '元/桶',
+      shopee_url TEXT DEFAULT '',
       images TEXT DEFAULT '[]',
       datasheet_url TEXT,
       is_active INTEGER NOT NULL DEFAULT 1,
@@ -93,6 +92,17 @@ function initDatabase() {
     console.log('╚══════════════════════════════════════╝');
     console.log('');
   }
+
+  // 新增 shopee_url 欄位（舊資料庫升級用）
+  try {
+    db.exec("ALTER TABLE products ADD COLUMN shopee_url TEXT DEFAULT ''");
+  } catch (e) { /* 欄位已存在，忽略 */ }
+  try {
+    db.exec("ALTER TABLE products DROP COLUMN price");
+  } catch (e) { /* 忽略 */ }
+  try {
+    db.exec("ALTER TABLE products DROP COLUMN price_unit");
+  } catch (e) { /* 忽略 */ }
 
   // 初始化預設設定
   const maintenanceSetting = db.prepare("SELECT value FROM settings WHERE key = 'maintenance_mode'").get();

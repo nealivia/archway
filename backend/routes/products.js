@@ -107,15 +107,15 @@ router.get('/admin/all', authenticateToken, (req, res) => {
 
 // 後台 - 新增商品
 router.post('/', authenticateToken, (req, res) => {
-  const { name, category_id, short_desc, description, features, applications, price, price_unit, images, datasheet_url, is_active, sort_order } = req.body;
+  const { name, category_id, short_desc, description, features, applications, shopee_url, images, datasheet_url, is_active, sort_order } = req.body;
 
   if (!name) {
     return res.status(400).json({ success: false, message: '商品名稱為必填' });
   }
 
   const stmt = db.prepare(`
-    INSERT INTO products (name, category_id, short_desc, description, features, applications, price, price_unit, images, datasheet_url, is_active, sort_order)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO products (name, category_id, short_desc, description, features, applications, shopee_url, images, datasheet_url, is_active, sort_order)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const result = stmt.run(
@@ -125,8 +125,7 @@ router.post('/', authenticateToken, (req, res) => {
     description || '',
     JSON.stringify(features || []),
     JSON.stringify(applications || []),
-    price || null,
-    price_unit || '元/桶',
+    shopee_url || '',
     JSON.stringify(images || []),
     datasheet_url || '',
     is_active !== undefined ? (is_active ? 1 : 0) : 1,
@@ -142,7 +141,7 @@ router.post('/', authenticateToken, (req, res) => {
 
 // 後台 - 更新商品
 router.put('/:id', authenticateToken, (req, res) => {
-  const { name, category_id, short_desc, description, features, applications, price, price_unit, images, datasheet_url, is_active, sort_order } = req.body;
+  const { name, category_id, short_desc, description, features, applications, shopee_url, images, datasheet_url, is_active, sort_order } = req.body;
 
   const existing = db.prepare('SELECT id FROM products WHERE id = ?').get(req.params.id);
   if (!existing) {
@@ -152,7 +151,7 @@ router.put('/:id', authenticateToken, (req, res) => {
   db.prepare(`
     UPDATE products SET
       name = ?, category_id = ?, short_desc = ?, description = ?,
-      features = ?, applications = ?, price = ?, price_unit = ?,
+      features = ?, applications = ?, shopee_url = ?,
       images = ?, datasheet_url = ?, is_active = ?, sort_order = ?,
       updated_at = datetime('now')
     WHERE id = ?
@@ -160,7 +159,7 @@ router.put('/:id', authenticateToken, (req, res) => {
     name, category_id || null, short_desc || '', description || '',
     JSON.stringify(features || []),
     JSON.stringify(applications || []),
-    price || null, price_unit || '元/桶',
+    shopee_url || '',
     JSON.stringify(images || []),
     datasheet_url || '',
     is_active ? 1 : 0,

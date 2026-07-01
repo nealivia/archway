@@ -99,23 +99,15 @@ export default function ProductDetail() {
                 <p className="text-gray-600 text-lg leading-relaxed mb-6 border-l-4 border-primary pl-4">{product.short_desc}</p>
               )}
 
-              {/* Price */}
-              <div className="bg-gray-50 border border-gray-200 p-6 mb-8 rounded-sm">
-                {product.price ? (
-                  <div>
-                    <div className="text-sm text-gray-500 mb-1">建議售價</div>
-                    <div className="text-4xl font-extrabold text-primary">
-                      NT$ {Number(product.price).toLocaleString()}
-                    </div>
-                    <div className="text-gray-400 text-sm mt-1">/ {product.price_unit}</div>
-                  </div>
-                ) : (
-                  <div>
-                    <div className="text-lg font-bold text-dark">價格請聯繫洽詢</div>
-                    <div className="text-gray-500 text-sm mt-1">依規格與數量提供最優報價</div>
-                  </div>
-                )}
-              </div>
+              {/* Shopee Button */}
+              {product.shopee_url && (
+                <a href={product.shopee_url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-3 w-full py-4 mb-6 rounded-sm font-bold text-white text-lg transition-opacity hover:opacity-90"
+                  style={{ background: '#EE4D2D' }}>
+                  <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white"><path d="M12 2C9.243 2 7 4.243 7 7H5C3.897 7 3 7.897 3 9v11c0 1.103.897 2 2 2h14c1.103 0 2-.897 2-2V9c0-1.103-.897-2-2-2h-2c0-2.757-2.243-5-5-5zm0 2c1.654 0 3 1.346 3 3H9c0-1.654 1.346-3 3-3zm0 10c-1.103 0-2-.897-2-2s.897-2 2-2 2 .897 2 2-.897 2-2 2z"/></svg>
+                  前往蝦皮購買
+                </a>
+              )}
 
               {/* Features */}
               {product.features?.length > 0 && (

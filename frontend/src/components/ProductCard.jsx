@@ -43,13 +43,12 @@ export default function ProductCard({ product }) {
         )}
 
         <div className="mt-4 flex items-center justify-between">
-          {product.price ? (
-            <span className="text-primary font-bold text-xl">
-              NT$ {Number(product.price).toLocaleString()}
-              <span className="text-sm font-normal text-gray-400 ml-1">/{product.price_unit?.replace('元/', '') || '桶'}</span>
+          {product.shopee_url ? (
+            <span className="text-xs font-medium px-2 py-1 rounded" style={{ background: '#FFF0ED', color: '#EE4D2D' }}>
+              🛒 蝦皮有售
             </span>
           ) : (
-            <span className="text-gray-400 text-sm">價格請詢問</span>
+            <span className="text-gray-400 text-sm">洽詢報價</span>
           )}
           <span className="text-primary text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
             了解更多

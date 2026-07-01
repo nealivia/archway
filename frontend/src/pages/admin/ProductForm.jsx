@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 
 const EMPTY = {
   name: '', category_id: '', short_desc: '', description: '',
-  features: [], applications: [], price: '', price_unit: '元/桶',
+  features: [], applications: [], shopee_url: '',
   images: [], datasheet_url: '', is_active: true, sort_order: 0
 }
 
@@ -32,8 +32,7 @@ export default function ProductForm() {
           description: p.description || '',
           features: p.features || [],
           applications: p.applications || [],
-          price: p.price || '',
-          price_unit: p.price_unit || '元/桶',
+          shopee_url: p.shopee_url || '',
           images: p.images || [],
           datasheet_url: p.datasheet_url || '',
           is_active: !!p.is_active,
@@ -84,7 +83,6 @@ export default function ProductForm() {
     try {
       const payload = {
         ...form,
-        price: form.price ? Number(form.price) : null,
         category_id: form.category_id || null,
         sort_order: Number(form.sort_order) || 0
       }
@@ -148,22 +146,15 @@ export default function ProductForm() {
           </div>
         </div>
 
-        {/* Pricing */}
+        {/* Shopee Link */}
         <div className="bg-white rounded shadow-sm p-6">
-          <h2 className="font-bold text-dark mb-5 pb-3 border-b border-gray-100">定價設定</h2>
-          <div className="grid md:grid-cols-3 gap-5 items-end">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">售價（NT$）</label>
-              <input type="number" value={form.price} onChange={e => set('price', e.target.value)} placeholder="留空表示「洽詢」" min="0" step="1"
-                className="w-full border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:border-primary rounded-sm" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">單位</label>
-              <select value={form.price_unit} onChange={e => set('price_unit', e.target.value)}
-                className="w-full border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:border-primary rounded-sm">
-                {['元/桶', '元/箱', '元/公斤', '元/公升', '元/才', '元/㎡', '元/包'].map(u => <option key={u} value={u}>{u}</option>)}
-              </select>
-            </div>
+          <h2 className="font-bold text-dark mb-5 pb-3 border-b border-gray-100">蝦皮購買連結</h2>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">蝦皮商品網址</label>
+            <input value={form.shopee_url} onChange={e => set('shopee_url', e.target.value)}
+              placeholder="https://shopee.tw/..."
+              className="w-full border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:border-primary rounded-sm" />
+            <p className="text-xs text-gray-400 mt-1.5">留空則不顯示蝦皮購買按鈕</p>
           </div>
         </div>
 
