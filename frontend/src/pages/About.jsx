@@ -49,24 +49,81 @@ export default function About() {
         </div>
       </section>
 
-      {/* Contact */}
+      {/* Stores */}
       <section className="py-20 bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-dark mb-2">門市據點</h2>
+            <p className="text-gray-500">歡迎親臨各門市洽詢</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6 mb-16">
+            {[
+              {
+                name: '和平店',
+                address: '台北市中正區和平西路一段136號1樓',
+                mapUrl: 'https://maps.google.com/?q=台北市中正區和平西路一段136號1樓',
+                phone: '02-2365-0047',
+                hours: '週一至週六 07:00-19:00'
+              },
+              {
+                name: '板橋店',
+                address: '新北市板橋區中山路二段384號1樓',
+                mapUrl: 'https://maps.google.com/?q=新北市板橋區中山路二段384號1樓',
+                phone: '02-2957-6311',
+                hours: '週一至週五 07:00-19:00'
+              },
+              {
+                name: '樹林 Sika 展示店',
+                address: '新北市樹林區東興街37號1樓',
+                mapUrl: 'https://maps.google.com/?q=新北市樹林區東興街37號1樓',
+                phone: '02-8685-8039',
+                hours: '週一至週五 08:00-17:00'
+              }
+            ].map(store => (
+              <div key={store.name} className="bg-white border border-gray-200 p-6 rounded-sm hover:shadow-md transition-shadow">
+                <h3 className="font-bold text-dark text-lg mb-4 pb-3 border-b border-gray-100">{store.name}</h3>
+                <div className="space-y-3">
+                  <a href={store.mapUrl} target="_blank" rel="noopener noreferrer"
+                    className="flex items-start gap-3 text-sm text-gray-600 hover:text-primary transition-colors group">
+                    <span className="text-lg mt-0.5">📍</span>
+                    <span className="group-hover:underline leading-relaxed">{store.address}</span>
+                  </a>
+                  <a href={`tel:${store.phone.replace(/-/g, '')}`}
+                    className="flex items-center gap-3 text-sm text-gray-600 hover:text-primary transition-colors">
+                    <span className="text-lg">📞</span>
+                    <span>{store.phone}</span>
+                  </a>
+                  <div className="flex items-center gap-3 text-sm text-gray-500">
+                    <span className="text-lg">🕐</span>
+                    <span>{store.hours}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Contact */}
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-dark mb-2">聯絡我們</h2>
             <p className="text-gray-500">填寫表單，我們將於一個工作天內回覆</p>
           </div>
           <div className="grid md:grid-cols-2 gap-10">
-            <div className="space-y-6">
-              {[['📍', '地址', '台北市中正區和平西路一段136號1樓'], ['📞', '電話', '02-23650047'], ['💬', 'LINE', '@archway'], ['✉️', '信箱', 'archway1991@gmail.com'], ['🕐', '服務時間', '週一至週六 09:00-18:00']].map(([icon, label, value]) => (
-                <div key={label} className="flex gap-4">
-                  <span className="text-2xl">{icon}</span>
-                  <div>
-                    <div className="text-sm text-gray-400 font-medium">{label}</div>
-                    <div className="text-dark font-medium">{value}</div>
-                  </div>
+            <div className="space-y-5">
+              <a href="https://line.me/R/ti/p/@archway" target="_blank" rel="noopener noreferrer"
+                className="flex gap-4 hover:text-primary transition-colors group">
+                <span className="text-2xl">💬</span>
+                <div>
+                  <div className="text-sm text-gray-400 font-medium">LINE</div>
+                  <div className="text-dark font-medium group-hover:text-primary">@archway</div>
                 </div>
-              ))}
+              </a>
+              <a href="mailto:archway1991@gmail.com" className="flex gap-4 hover:text-primary transition-colors group">
+                <span className="text-2xl">✉️</span>
+                <div>
+                  <div className="text-sm text-gray-400 font-medium">信箱</div>
+                  <div className="text-dark font-medium group-hover:text-primary">archway1991@gmail.com</div>
+                </div>
+              </a>
             </div>
             <form className="space-y-4" onSubmit={e => e.preventDefault()}>
               <input type="text" placeholder="您的姓名 *" className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-primary" required />
