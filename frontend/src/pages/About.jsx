@@ -1,7 +1,27 @@
+import { useState } from 'react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import api from '../api/client'
+import toast from 'react-hot-toast'
 
 export default function About() {
+  const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' })
+  const [sending, setSending] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setSending(true)
+    try {
+      await api.post('/contact', form)
+      toast.success('詢問已送出，我們將盡快回覆您！')
+      setForm({ name: '', email: '', phone: '', message: '' })
+    } catch {
+      toast.error('送出失敗，請直接來電或 LINE 聯繫我們')
+    } finally {
+      setSending(false)
+    }
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -125,12 +145,14 @@ export default function About() {
                 </div>
               </a>
             </div>
-            <form className="space-y-4" onSubmit={e => e.preventDefault()}>
-              <input type="text" placeholder="您的姓名 *" className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-primary" required />
-              <input type="email" placeholder="電子郵件 *" className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-primary" required />
-              <input type="tel" placeholder="聯絡電話" className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-primary" />
-              <textarea rows={4} placeholder="詢問內容 *" className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-primary resize-none" required></textarea>
-              <button type="submit" className="btn-primary w-full py-3">送出詢問</button>
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <input type="text" placeholder="您的姓名 *" value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-primary" required />
+              <input type="email" placeholder="電子郵件 *" value={form.email} onChange={e => setForm(f => ({...f, email: e.target.value}))} className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-primary" required />
+              <input type="tel" placeholder="聯絡電話" value={form.phone} onChange={e => setForm(f => ({...f, phone: e.target.value}))} className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-primary" />
+              <textarea rows={4} placeholder="詢問內容 *" value={form.message} onChange={e => setForm(f => ({...f, message: e.target.value}))} className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-primary resize-none" required></textarea>
+              <button type="submit" disabled={sending} className="btn-primary w-full py-3 disabled:opacity-60">
+                {sending ? '送出中...' : '送出詢問'}
+              </button>
             </form>
           </div>
         </div>
