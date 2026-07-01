@@ -15,8 +15,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 靜態檔案 - 上傳的圖片
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// 靜態檔案 - 上傳的圖片（優先使用 Volume 路徑）
+const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, 'uploads');
+app.use('/uploads', express.static(uploadsDir));
 
 // API 路由
 app.use('/api/auth', require('./routes/auth'));
