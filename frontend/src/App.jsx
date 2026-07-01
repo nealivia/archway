@@ -26,6 +26,12 @@ export default function App() {
   const [checked, setChecked] = useState(false)
 
   useEffect(() => {
+    // 預覽模式：網址帶 ?preview=archway1991 可跳過維護頁面
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('preview') === 'archway1991') {
+      setChecked(true)
+      return
+    }
     api.get('/settings/maintenance')
       .then(r => setMaintenance(r.maintenance || false))
       .catch(() => {})
