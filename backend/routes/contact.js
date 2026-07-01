@@ -13,7 +13,7 @@ router.post('/', async (req, res) => {
     const resend = new Resend(process.env.RESEND_API_KEY);
 
     await resend.emails.send({
-      from: 'onboarding@resend.dev',
+      from: 'noreply@archway.tw',
       to: 'archway1991@gmail.com',
       subject: `【松上防水】新詢問：${name}`,
       html: `
