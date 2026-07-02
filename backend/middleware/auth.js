@@ -18,7 +18,7 @@ function authenticateToken(req, res, next) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = db.prepare('SELECT id, username, email, role, is_active FROM users WHERE id = ?').get(decoded.id);
-    
+
     if (!user || !user.is_active) {
       return res.status(401).json({ success: false, message: '帳號不存在或已停用' });
     }
@@ -26,7 +26,7 @@ function authenticateToken(req, res, next) {
     req.user = user;
     next();
   } catch (err) {
-    return res.status(403).json({ success: false, message: 'Token 無效或已過期' });
+    return res.status(401).json({ success: false, message: 'Token 無效或已過期，請重新登入' });
   }
 }
 
@@ -41,7 +41,7 @@ function generateToken(user) {
   return jwt.sign(
     { id: user.id, username: user.username, role: user.role },
     JWT_SECRET,
-    { expiresIn: '8h' }
+    { expiresIn: '30d' }
   );
 }
 
