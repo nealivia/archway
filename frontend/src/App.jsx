@@ -1,8 +1,10 @@
 import { Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './context/AuthContext'
+import { CompareProvider } from './context/CompareContext'
 import { useState, useEffect } from 'react'
 import api from './api/client'
+import CompareBar from './components/CompareBar'
 
 // 前台頁面
 import Home from './pages/Home'
@@ -10,6 +12,7 @@ import Products from './pages/Products'
 import ProductDetail from './pages/ProductDetail'
 import About from './pages/About'
 import Maintenance from './pages/Maintenance'
+import Compare from './pages/Compare'
 
 // 後台頁面
 import AdminLogin from './pages/admin/Login'
@@ -67,13 +70,16 @@ export default function App() {
 
   return (
     <AuthProvider>
+      <CompareProvider>
       <Toaster position="top-right" />
+      <CompareBar />
       <Routes>
         {/* 前台路由 */}
         <Route path="/" element={<Home />} />
         <Route path="/products" element={<Products />} />
         <Route path="/products/:id" element={<ProductDetail />} />
         <Route path="/about" element={<About />} />
+        <Route path="/compare" element={<Compare />} />
 
         {/* 後台路由 */}
         <Route path="/admin/login" element={<AdminLogin />} />
@@ -90,6 +96,7 @@ export default function App() {
           <Route path="users" element={<UsersAdmin />} />
         </Route>
       </Routes>
+      </CompareProvider>
     </AuthProvider>
   )
 }
