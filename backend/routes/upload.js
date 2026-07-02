@@ -40,4 +40,19 @@ router.post('/images', authenticateToken, upload.array('images', 10), (req, res)
   res.json({ success: true, urls });
 });
 
+const pdfUpload = multer({
+  storage,
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (/\.pdf$/i.test(file.originalname)) cb(null, true);
+    else cb(new Error('只允許上傳 PDF 檔案'));
+  }
+});
+
+router.post('/pdf', authenticateToken, pdfUpload.single('pdf'), (req, res) => {
+  if (!req.file) return res.status(400).json({ success: false, message: '未上傳檔案' });
+  const url = `/uploads/${req.file.filename}`;
+  res.json({ success: true, url, originalName: req.file.originalname });
+});
+
 module.exports = router;

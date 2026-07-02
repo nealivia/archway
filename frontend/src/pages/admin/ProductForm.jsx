@@ -40,6 +40,7 @@ export default function ProductForm() {
   const [saving, setSaving] = useState(false)
   const [featureInput, setFeatureInput] = useState('')
   const [customAppInput, setCustomAppInput] = useState('')
+  const [pdfUploading, setPdfUploading] = useState(false)
 
   useEffect(() => {
     api.get('/categories').then(r => setCategories(r.data || [])).catch(() => {})
@@ -106,6 +107,22 @@ export default function ProductForm() {
   }
 
   const removeImage = (i) => set('images', form.images.filter((_, idx) => idx !== i))
+
+  const handlePdfUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPdfUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('pdf', file)
+      const res = await api.post('/upload/pdf', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      set('datasheet_url', res.url)
+      toast.success(`已上傳：${res.originalName}`)
+    } catch { toast.error('PDF 上傳失敗') }
+    finally { setPdfUploading(false) }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -187,6 +204,42 @@ export default function ProductForm() {
               className="w-full border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:border-primary rounded-sm" />
             <p className="text-xs text-gray-400 mt-1.5">留空則不顯示蝦皮購買按鈕</p>
           </div>
+        </div>
+
+        {/* Datasheet PDF */}
+        <div className="bg-white rounded shadow-sm p-6">
+          <h2 className="font-bold text-dark mb-1 pb-3 border-b border-gray-100">技術文件 PDF</h2>
+          <p className="text-xs text-gray-400 mb-4">上傳後客戶可在產品頁直接下載（最大 20MB）</p>
+
+          {form.datasheet_url ? (
+            <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded px-4 py-3">
+              <svg className="w-8 h-8 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+              </svg>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-dark truncate">
+                  {form.datasheet_url.split('/').pop()}
+                </p>
+                <a href={form.datasheet_url} target="_blank" rel="noreferrer"
+                  className="text-xs text-primary hover:underline">預覽 PDF ›</a>
+              </div>
+              <div className="flex gap-2">
+                <label className={`px-3 py-1.5 text-xs border border-gray-300 rounded cursor-pointer hover:bg-gray-100 ${pdfUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                  {pdfUploading ? '上傳中...' : '更換'}
+                  <input type="file" accept=".pdf" onChange={handlePdfUpload} disabled={pdfUploading} className="hidden" />
+                </label>
+                <button type="button" onClick={() => set('datasheet_url', '')}
+                  className="px-3 py-1.5 text-xs border border-red-200 text-red-500 rounded hover:bg-red-50">刪除</button>
+              </div>
+            </div>
+          ) : (
+            <label className={`block border-2 border-dashed border-gray-300 hover:border-primary rounded p-8 text-center cursor-pointer transition-colors ${pdfUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+              <div className="text-3xl mb-2">📄</div>
+              <div className="text-sm text-gray-500">{pdfUploading ? '上傳中...' : '點擊上傳 PDF 技術文件'}</div>
+              <div className="text-xs text-gray-400 mt-1">例：產品規格書、TDS 技術資料表、SDS 安全資料表</div>
+              <input type="file" accept=".pdf" onChange={handlePdfUpload} disabled={pdfUploading} className="hidden" />
+            </label>
+          )}
         </div>
 
         {/* Features */}
