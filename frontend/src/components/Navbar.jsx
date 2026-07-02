@@ -14,8 +14,9 @@ export default function Navbar() {
     <header className="sticky top-0 z-50" style={{background: 'rgba(255,255,255,0.88)', backdropFilter: 'saturate(180%) blur(20px)', WebkitBackdropFilter: 'saturate(180%) blur(20px)', borderBottom: '1px solid rgba(0,0,0,0.08)'}}>
       <div className="max-w-5xl mx-auto px-6 h-12 flex items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center">
-          <img src="/archway_logo.png" alt="ARCHWAY" className="h-7 w-auto" />
+        <Link to="/" className="flex items-center gap-2">
+          <img src="/archway_logo.png" alt="ARCHWAY" className="h-8 w-auto" />
+          <span className="text-base font-semibold text-dark tracking-tight">ARCHWAY</span>
         </Link>
 
         {/* Desktop Nav */}
