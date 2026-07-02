@@ -9,6 +9,12 @@ const EMPTY = {
   images: [], datasheet_url: '', is_active: true, sort_order: 0
 }
 
+const FEATURE_SUGGESTIONS = [
+  { group: '性能', items: ['彈性伸縮率 450% 以上', '耐水壓 5m 水柱', '使用年限 10 年以上', '乾燥時間快（4 小時可踩踏）', '附著力強，免底漆'] },
+  { group: '材質', items: ['無毒環保，可接觸飲用水', '水性配方，無刺鼻氣味', '溶劑型，穿透力強', '單液型，免調配直接使用', '雙液型（A+B 混合）'] },
+  { group: '耐候', items: ['耐紫外線，適合曝曬屋頂', '耐高溫（150°C）', '耐酸鹼腐蝕', '可在潮濕面施工', '抗凍融循環'] },
+]
+
 const APP_OPTIONS = [
   {
     group: '正水壓防水',
@@ -164,7 +170,8 @@ export default function ProductForm() {
           <h2 className="font-bold text-dark mb-5 pb-3 border-b border-gray-100">基本資訊</h2>
           <div className="grid md:grid-cols-2 gap-5">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">商品名稱 *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">商品名稱 *</label>
+              <p className="text-xs text-gray-400 mb-1.5">建議格式：品牌／系列 ＋ 型號 ＋ 類型，例：<span className="text-gray-500">ProWater 901 彈性防水塗料</span>、<span className="text-gray-500">Sika-107 水泥基防水材</span></p>
               <input value={form.name} onChange={e => set('name', e.target.value)} placeholder="例：ProWater 901 彈性防水塗料" required
                 className="w-full border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:border-primary rounded-sm" />
             </div>
@@ -182,13 +189,18 @@ export default function ProductForm() {
                 className="w-full border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:border-primary rounded-sm" />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">簡短描述</label>
-              <input value={form.short_desc} onChange={e => set('short_desc', e.target.value)} placeholder="顯示在商品列表的簡短介紹（建議 50 字以內）"
+              <label className="block text-sm font-medium text-gray-700 mb-1">簡短描述</label>
+              <p className="text-xs text-gray-400 mb-1.5">顯示在商品列表卡片上，建議 30–50 字，點出最大賣點。例：<span className="text-gray-500">高彈性水性聚氨酯，適合屋頂平台與浴室，無毒環保，乾燥快速。</span></p>
+              <input value={form.short_desc} onChange={e => set('short_desc', e.target.value)}
+                placeholder="例：高彈性水性聚氨酯，適合屋頂平台與浴室，無毒環保，乾燥快速。"
                 className="w-full border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:border-primary rounded-sm" />
+              <p className="text-xs text-gray-400 mt-1 text-right">{form.short_desc.length} / 80 字</p>
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">詳細說明</label>
-              <textarea rows={5} value={form.description} onChange={e => set('description', e.target.value)} placeholder="完整的商品說明、施工方式、注意事項等..."
+              <label className="block text-sm font-medium text-gray-700 mb-1">詳細說明</label>
+              <p className="text-xs text-gray-400 mb-1.5">建議包含：產品概述、適用基材、施工步驟、注意事項、保固條件。可分段書寫。</p>
+              <textarea rows={6} value={form.description} onChange={e => set('description', e.target.value)}
+                placeholder={'例：\nProWater 901 為單液型水性聚氨酯防水塗料，適用於混凝土、磁磚、金屬等基材。\n\n【施工步驟】\n1. 清潔基面，去除灰塵與油污\n2. 均勻塗布第一道，待乾 4 小時\n3. 交叉方向塗布第二道\n\n【注意事項】\n施工溫度須在 5–40°C，避免雨天施工。'}
                 className="w-full border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:border-primary rounded-sm resize-none" />
             </div>
           </div>
@@ -244,23 +256,53 @@ export default function ProductForm() {
 
         {/* Features */}
         <div className="bg-white rounded shadow-sm p-6">
-          <h2 className="font-bold text-dark mb-5 pb-3 border-b border-gray-100">產品特點</h2>
+          <h2 className="font-bold text-dark mb-1 pb-3 border-b border-gray-100">產品特點</h2>
+          <p className="text-xs text-gray-400 mb-4">用於產品頁打勾列表與比較頁面對照，每條建議 6–15 字，用詞統一（同系列產品用同樣措辭）</p>
+
+          {/* 快速新增範例 */}
+          <div className="mb-4 space-y-2">
+            {FEATURE_SUGGESTIONS.map(g => (
+              <div key={g.group}>
+                <span className="text-xs text-gray-400 mr-2">{g.group}：</span>
+                {g.items.map(item => {
+                  const added = form.features.includes(item)
+                  return (
+                    <button key={item} type="button"
+                      onClick={() => added ? set('features', form.features.filter(f => f !== item)) : set('features', [...form.features, item])}
+                      className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded border mr-1.5 mb-1.5 transition-colors
+                        ${added ? 'bg-primary/10 border-primary text-primary' : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-400'}`}>
+                      {added ? '✓ ' : '+ '}{item}
+                    </button>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+
+          {/* 自訂輸入 */}
           <div className="flex gap-2 mb-4">
             <input value={featureInput} onChange={e => setFeatureInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addFeature())}
-              placeholder="輸入特點後按 Enter 或點擊新增"
+              placeholder="自訂特點，例：防霉抗藻配方"
               className="flex-1 border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:border-primary rounded-sm" />
             <button type="button" onClick={addFeature} className="bg-dark text-white px-4 py-2.5 text-sm rounded-sm hover:bg-gray-700">新增</button>
           </div>
-          <ul className="space-y-2">
-            {form.features.map((f, i) => (
-              <li key={i} className="flex items-center gap-2 bg-gray-50 px-4 py-2 rounded text-sm">
-                <span className="text-primary">✓</span>
-                <span className="flex-1">{f}</span>
-                <button type="button" onClick={() => removeFeature(i)} className="text-red-400 hover:text-red-600 ml-2">✕</button>
-              </li>
-            ))}
-          </ul>
+
+          {/* 已選列表 */}
+          {form.features.length > 0 && (
+            <ul className="space-y-1.5">
+              {form.features.map((f, i) => (
+                <li key={i} className="flex items-center gap-2 bg-gray-50 px-4 py-2 rounded text-sm">
+                  <span className="text-primary text-xs">✓</span>
+                  <span className="flex-1">{f}</span>
+                  <button type="button" onClick={() => removeFeature(i)} className="text-gray-300 hover:text-red-500 transition-colors">✕</button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {form.features.length === 0 && (
+            <p className="text-xs text-gray-300 text-center py-4">尚未新增任何特點，點擊上方範例或自行輸入</p>
+          )}
         </div>
 
         {/* Applications */}
