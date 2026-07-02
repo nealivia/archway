@@ -132,7 +132,7 @@ export default function About() {
       </section>
 
       {/* Contact */}
-      <section className="py-20 bg-gray-50 px-6">
+      <section id="contact" className="py-20 bg-gray-50 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <div className="section-eyebrow">聯絡我們</div>

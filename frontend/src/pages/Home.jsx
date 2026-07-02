@@ -45,7 +45,7 @@ export default function Home() {
             瀏覽產品目錄 ›
           </Link>
           <span className="text-gray-300 text-lg mx-1">|</span>
-          <Link to="/about" className="text-base text-gray-500 hover:text-dark transition-colors font-normal">
+          <Link to="/about#contact" className="text-base text-gray-500 hover:text-dark transition-colors font-normal">
             聯絡我們 ›
           </Link>
         </div>
@@ -113,7 +113,7 @@ export default function Home() {
       <section className="py-24 bg-dark text-center px-6">
         <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-3">需要專業建議？</h2>
         <p className="text-lg text-gray-400 mb-8">技術團隊隨時提供免費諮詢與報價</p>
-        <Link to="/about" className="btn-primary inline-block">立即聯絡我們</Link>
+        <Link to="/about#contact" className="btn-primary inline-block">立即聯絡我們</Link>
       </section>
 
       <Footer />

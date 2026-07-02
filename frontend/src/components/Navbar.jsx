@@ -36,7 +36,7 @@ export default function Navbar() {
         </nav>
 
         {/* CTA */}
-        <Link to="/about" className="hidden md:block text-xs font-medium text-primary hover:text-primary-dark transition-colors">
+        <Link to="/about#contact" className="hidden md:block text-xs font-medium text-primary hover:text-primary-dark transition-colors">
           立即詢價 ›
         </Link>
 
@@ -67,7 +67,7 @@ export default function Navbar() {
               {l.label}
             </NavLink>
           ))}
-          <Link to="/about" onClick={() => setOpen(false)} className="block px-6 py-2.5 text-sm text-primary font-medium">
+          <Link to="/about#contact" onClick={() => setOpen(false)} className="block px-6 py-2.5 text-sm text-primary font-medium">
             立即詢價 ›
           </Link>
         </div>
