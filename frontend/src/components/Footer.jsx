@@ -6,11 +6,8 @@ export default function Footer() {
       <div className="max-w-5xl mx-auto px-6 py-8">
         <div className="flex flex-col md:flex-row justify-between gap-6 mb-6">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-4 h-4 bg-primary rounded flex items-center justify-center">
-                <svg viewBox="0 0 12 12" className="w-2.5 h-2.5 fill-white"><path d="M6 1L11 10H1z"/></svg>
-              </div>
-              <span className="text-sm font-semibold text-dark">ARCHWAY 松上防水</span>
+            <div className="flex items-center mb-2">
+              <img src="/archway_logo.png" alt="ARCHWAY" className="h-6 w-auto" />
             </div>
             <p className="text-xs text-gray-500 leading-relaxed">台灣專業防水建材廠商，成立於 1991 年</p>
           </div>
