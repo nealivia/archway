@@ -50,11 +50,11 @@ export default function Products() {
       <Navbar />
 
       {/* Header */}
-      <div className="bg-gray-50 pt-14 pb-10 px-6 border-b border-gray-200">
+      <div className="bg-gray-50 pt-8 pb-8 md:pt-14 md:pb-10 px-6 border-b border-gray-200">
         <div className="max-w-5xl mx-auto">
           <div className="section-eyebrow">ARCHWAY 松上防水</div>
-          <h1 className="text-5xl font-bold text-dark tracking-tight mb-2">產品目錄</h1>
-          <p className="text-lg text-gray-500">完整防水材料系列，滿足各種工程需求</p>
+          <h1 className="text-4xl md:text-5xl font-bold text-dark tracking-tight mb-2">產品目錄</h1>
+          <p className="text-base md:text-lg text-gray-500">完整防水材料系列，滿足各種工程需求</p>
         </div>
       </div>
 

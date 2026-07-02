@@ -31,13 +31,13 @@ export default function Home() {
       <Navbar />
 
       {/* Hero */}
-      <section className="bg-gray-50 pt-20 pb-16 text-center px-6">
+      <section className="bg-gray-50 pt-12 pb-10 md:pt-20 md:pb-16 text-center px-6">
         <div className="section-eyebrow">台灣專業防水建材廠商　成立於 1991 年</div>
-        <h1 className="text-6xl md:text-7xl font-bold text-dark tracking-tight leading-none mb-4 mt-2">
+        <h1 className="text-5xl md:text-7xl font-bold text-dark tracking-tight leading-none mb-4 mt-2">
           滴水不漏。
         </h1>
-        <p className="text-xl text-gray-500 mb-2 font-normal">松上防水　ARCHWAY</p>
-        <p className="text-base text-gray-400 mb-8 max-w-lg mx-auto leading-relaxed">
+        <p className="text-lg md:text-xl text-gray-500 mb-2 font-normal">松上防水　ARCHWAY</p>
+        <p className="text-sm md:text-base text-gray-400 mb-8 max-w-lg mx-auto leading-relaxed">
           30 年專業經驗，為您的建築提供最完整的防水解決方案
         </p>
         <div className="flex items-center justify-center gap-2 flex-wrap">
@@ -64,12 +64,12 @@ export default function Home() {
       </div>
 
       {/* Features */}
-      <section className="py-20 bg-white px-6">
+      <section className="py-12 md:py-20 bg-white px-6">
         <div className="max-w-5xl mx-auto">
           <div className="section-eyebrow text-center">為何選擇我們</div>
           <h2 className="section-title text-center mb-3">品質，您可以放心</h2>
-          <p className="text-lg text-gray-500 text-center mb-14">通過多項國際認證，專業品質保證</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+          <p className="text-base md:text-lg text-gray-500 text-center mb-10 md:mb-14">通過多項國際認證，專業品質保證</p>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-10">
             {features.map(f => (
               <div key={f.title}>
                 <div className="text-3xl mb-4">{f.icon}</div>
@@ -82,7 +82,7 @@ export default function Home() {
       </section>
 
       {/* Products */}
-      <section className="py-20 bg-gray-50 px-6">
+      <section className="py-12 md:py-20 bg-gray-50 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-end justify-between mb-10">
             <div>
@@ -110,9 +110,9 @@ export default function Home() {
       </section>
 
       {/* CTA */}
-      <section className="py-24 bg-dark text-center px-6">
-        <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-3">需要專業建議？</h2>
-        <p className="text-lg text-gray-400 mb-8">技術團隊隨時提供免費諮詢與報價</p>
+      <section className="py-16 md:py-24 bg-dark text-center px-6">
+        <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-3">需要專業建議？</h2>
+        <p className="text-base md:text-lg text-gray-400 mb-8">技術團隊隨時提供免費諮詢與報價</p>
         <Link to="/about#contact" className="btn-primary inline-block">立即聯絡我們</Link>
       </section>
 

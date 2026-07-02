@@ -63,16 +63,16 @@ export default function About() {
       <Navbar />
 
       {/* Hero */}
-      <section className="bg-gray-50 pt-14 pb-10 px-6 border-b border-gray-200">
+      <section className="bg-gray-50 pt-8 pb-8 md:pt-14 md:pb-10 px-6 border-b border-gray-200">
         <div className="max-w-5xl mx-auto">
           <div className="section-eyebrow">ARCHWAY 松上防水</div>
-          <h1 className="text-5xl font-bold text-dark tracking-tight mb-2">關於我們</h1>
-          <p className="text-lg text-gray-500">30 年專業經驗，您最信賴的防水夥伴</p>
+          <h1 className="text-4xl md:text-5xl font-bold text-dark tracking-tight mb-2">關於我們</h1>
+          <p className="text-base md:text-lg text-gray-500">30 年專業經驗，您最信賴的防水夥伴</p>
         </div>
       </section>
 
       {/* About */}
-      <section className="py-20 bg-white px-6">
+      <section className="py-12 md:py-20 bg-white px-6">
         <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-16 items-start">
           <div>
             <div className="section-eyebrow">公司簡介</div>
@@ -110,7 +110,7 @@ export default function About() {
       </section>
 
       {/* Stores */}
-      <section className="py-20 bg-white px-6">
+      <section className="py-12 md:py-20 bg-white px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <div className="section-eyebrow">門市據點</div>
@@ -141,7 +141,7 @@ export default function About() {
       </section>
 
       {/* Contact */}
-      <section id="contact" className="py-20 bg-gray-50 px-6">
+      <section id="contact" className="py-12 md:py-20 bg-gray-50 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <div className="section-eyebrow">聯絡我們</div>
