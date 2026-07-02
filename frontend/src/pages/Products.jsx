@@ -26,7 +26,6 @@ export default function Products() {
     const params = new URLSearchParams({ limit: LIMIT, page })
     if (categoryId) params.set('category_id', categoryId)
     if (search) params.set('search', search)
-
     api.get(`/products?${params}`)
       .then(r => { setProducts(r.data || []); setTotal(r.total || 0) })
       .catch(() => {})
@@ -43,47 +42,44 @@ export default function Products() {
     })
   }
 
-  const setCategory = (id) => {
-    setSearchParams(id ? { category_id: id } : {})
-  }
-
+  const setCategory = (id) => setSearchParams(id ? { category_id: id } : {})
   const totalPages = Math.ceil(total / LIMIT)
 
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
 
-      {/* Page Header */}
-      <div className="bg-dark py-16">
-        <div className="max-w-7xl mx-auto px-4">
-          <h1 className="text-4xl font-extrabold text-white mb-2">產品目錄</h1>
-          <p className="text-gray-400">完整防水材料系列，滿足各種工程需求</p>
+      {/* Header */}
+      <div className="bg-gray-50 pt-14 pb-10 px-6 border-b border-gray-200">
+        <div className="max-w-5xl mx-auto">
+          <div className="section-eyebrow">ARCHWAY 松上防水</div>
+          <h1 className="text-5xl font-bold text-dark tracking-tight mb-2">產品目錄</h1>
+          <p className="text-lg text-gray-500">完整防水材料系列，滿足各種工程需求</p>
         </div>
       </div>
 
-      <div className="flex-1 py-10 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4">
-          {/* Search & Filter Bar */}
-          <div className="flex flex-col md:flex-row gap-4 mb-8">
-            <form onSubmit={handleSearch} className="flex gap-2 flex-1">
-              <input
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="搜尋產品..."
-                className="flex-1 border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-primary"
-              />
-              <button type="submit" className="bg-dark text-white px-5 py-2.5 text-sm font-medium hover:bg-primary transition-colors">
-                搜尋
-              </button>
-            </form>
-          </div>
+      <div className="flex-1 py-10 bg-white px-6">
+        <div className="max-w-5xl mx-auto">
+
+          {/* Search */}
+          <form onSubmit={handleSearch} className="flex gap-2 mb-8 max-w-md">
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="搜尋產品..."
+              className="flex-1 border border-gray-200 rounded-full px-5 py-2.5 text-sm focus:outline-none focus:border-gray-400 bg-gray-50"
+            />
+            <button type="submit" className="bg-dark text-white rounded-full px-5 py-2.5 text-sm font-medium hover:bg-gray-800 transition-colors">
+              搜尋
+            </button>
+          </form>
 
           {/* Category Tabs */}
           <div className="flex flex-wrap gap-2 mb-8">
             <button
               onClick={() => setCategory('')}
-              className={`px-4 py-2 text-sm font-medium border transition-colors ${!categoryId ? 'bg-dark text-white border-dark' : 'bg-white text-gray-600 border-gray-200 hover:border-dark'}`}
+              className={`px-4 py-1.5 text-sm rounded-full border transition-colors ${!categoryId ? 'bg-dark text-white border-dark' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'}`}
             >
               全部
             </button>
@@ -91,31 +87,32 @@ export default function Products() {
               <button
                 key={c.id}
                 onClick={() => setCategory(String(c.id))}
-                className={`px-4 py-2 text-sm font-medium border transition-colors ${categoryId === String(c.id) ? 'bg-dark text-white border-dark' : 'bg-white text-gray-600 border-gray-200 hover:border-dark'}`}
+                className={`px-4 py-1.5 text-sm rounded-full border transition-colors ${categoryId === String(c.id) ? 'bg-dark text-white border-dark' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'}`}
               >
                 {c.name}
               </button>
             ))}
           </div>
 
-          {/* Results count */}
-          <p className="text-gray-500 text-sm mb-6">共 {total} 項產品</p>
+          <p className="text-xs text-gray-400 mb-6">共 {total} 項產品</p>
 
-          {/* Products Grid */}
+          {/* Grid */}
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="bg-gray-200 animate-pulse aspect-video rounded"></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="bg-gray-100 animate-pulse rounded-2xl aspect-video"></div>
               ))}
             </div>
           ) : products.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {products.map(p => <ProductCard key={p.id} product={p} />)}
             </div>
           ) : (
-            <div className="text-center py-20 text-gray-400">
-              <div className="text-6xl mb-4">🔍</div>
-              <p className="text-lg">找不到相符的產品</p>
+            <div className="text-center py-24 text-gray-300">
+              <svg className="w-16 h-16 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+              <p className="text-gray-400">找不到相符的產品</p>
             </div>
           )}
 
@@ -126,7 +123,7 @@ export default function Products() {
                 <button
                   key={i}
                   onClick={() => setSearchParams(prev => { const p = new URLSearchParams(prev); p.set('page', i + 1); return p })}
-                  className={`w-10 h-10 text-sm font-medium border transition-colors ${page === i + 1 ? 'bg-dark text-white border-dark' : 'bg-white text-gray-600 border-gray-200 hover:border-dark'}`}
+                  className={`w-9 h-9 text-sm rounded-full border transition-colors ${page === i + 1 ? 'bg-dark text-white border-dark' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'}`}
                 >
                   {i + 1}
                 </button>

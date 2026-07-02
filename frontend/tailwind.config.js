@@ -5,22 +5,18 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#7B1818',
-          dark: '#5C1111',
-          light: '#9B2020'
+          DEFAULT: '#E8000B',
+          dark: '#C4000A',
+          light: '#FF1A23'
         },
         dark: {
-          DEFAULT: '#2B2B2B',
-          lighter: '#3D3D3D',
-          card: '#4A4A4A'
-        },
-        steel: {
-          DEFAULT: '#4A4A4A',
-          light: '#5C5C5C'
+          DEFAULT: '#1d1d1f',
+          lighter: '#3d3d3f',
+          card: '#f5f5f7'
         }
       },
       fontFamily: {
-        sans: ['Inter', 'Noto Sans TC', 'sans-serif']
+        sans: ['-apple-system', 'BlinkMacSystemFont', 'Helvetica Neue', 'PingFang TC', 'sans-serif']
       }
     }
   },

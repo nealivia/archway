@@ -3,21 +3,30 @@
 @tailwind utilities;
 
 @layer base {
-  html { scroll-behavior: smooth; }
-  body { @apply bg-white text-gray-800 font-sans; }
+  html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+  body { @apply bg-white text-dark font-sans; }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-primary hover:bg-primary-dark text-white font-semibold px-6 py-3 transition-colors duration-200 rounded-sm;
+    @apply bg-primary hover:bg-primary-dark text-white font-medium px-8 py-3.5 transition-colors duration-200 rounded-full text-base;
   }
   .btn-outline {
-    @apply border-2 border-primary text-primary hover:bg-primary hover:text-white font-semibold px-6 py-3 transition-colors duration-200 rounded-sm;
+    @apply border-2 border-primary text-primary hover:bg-primary hover:text-white font-medium px-8 py-3.5 transition-colors duration-200 rounded-full text-base;
+  }
+  .btn-white {
+    @apply bg-white text-dark hover:bg-gray-100 font-medium px-8 py-3.5 transition-colors duration-200 rounded-full text-base;
   }
   .section-title {
-    @apply text-3xl font-bold text-dark mb-2;
+    @apply text-4xl md:text-5xl font-bold text-dark tracking-tight;
   }
-  .section-subtitle {
-    @apply text-gray-500 text-lg mb-10;
+  .section-eyebrow {
+    @apply text-xs font-medium text-gray-500 tracking-wide uppercase mb-2;
+  }
+  .apple-link {
+    @apply text-primary hover:text-primary-dark transition-colors;
+  }
+  .apple-link::after {
+    content: ' ›';
   }
 }
