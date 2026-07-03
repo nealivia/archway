@@ -93,25 +93,12 @@ function initDatabase() {
     console.log('');
   }
 
-  // 新增 shopee_url 欄位（舊資料庫升級用）
-  try {
-    db.exec("ALTER TABLE products ADD COLUMN shopee_url TEXT DEFAULT ''");
-  } catch (e) { /* 欄位已存在，忽略 */ }
-  try {
-    db.exec("ALTER TABLE products ADD COLUMN installation_url TEXT DEFAULT ''");
-  } catch (e) { /* 欄位已存在，忽略 */ }
-  try {
-    db.exec("ALTER TABLE products ADD COLUMN is_featured INTEGER NOT NULL DEFAULT 0");
-  } catch (e) { /* 欄位已存在，忽略 */ }
-  try {
-    db.exec("ALTER TABLE products ADD COLUMN price INTEGER DEFAULT 0");
-  } catch (e) { /* 欄位已存在，忽略 */ }
-  try {
-    db.exec("ALTER TABLE products DROP COLUMN price");
-  } catch (e) { /* 忽略 */ }
-  try {
-    db.exec("ALTER TABLE products DROP COLUMN price_unit");
-  } catch (e) { /* 忽略 */ }
+  // 欄位升級 migrations（順序重要：先刪舊欄位，再加新欄位）
+  try { db.exec("ALTER TABLE products DROP COLUMN price_unit"); } catch (e) { /* 忽略 */ }
+  try { db.exec("ALTER TABLE products ADD COLUMN shopee_url TEXT DEFAULT ''"); } catch (e) { /* 已存在 */ }
+  try { db.exec("ALTER TABLE products ADD COLUMN installation_url TEXT DEFAULT ''"); } catch (e) { /* 已存在 */ }
+  try { db.exec("ALTER TABLE products ADD COLUMN is_featured INTEGER DEFAULT 0"); } catch (e) { /* 已存在 */ }
+  try { db.exec("ALTER TABLE products ADD COLUMN price INTEGER DEFAULT 0"); } catch (e) { /* 已存在 */ }
 
   // 初始化預設設定
   const maintenanceSetting = db.prepare("SELECT value FROM settings WHERE key = 'maintenance_mode'").get();
