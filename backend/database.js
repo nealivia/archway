@@ -98,6 +98,9 @@ function initDatabase() {
     db.exec("ALTER TABLE products ADD COLUMN shopee_url TEXT DEFAULT ''");
   } catch (e) { /* 欄位已存在，忽略 */ }
   try {
+    db.exec("ALTER TABLE products ADD COLUMN installation_url TEXT DEFAULT ''");
+  } catch (e) { /* 欄位已存在，忽略 */ }
+  try {
     db.exec("ALTER TABLE products DROP COLUMN price");
   } catch (e) { /* 忽略 */ }
   try {

@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 const EMPTY = {
   name: '', category_id: '', short_desc: '', description: '',
   features: [], applications: [], shopee_url: '',
-  images: [], datasheet_url: '', is_active: true, sort_order: 0
+  images: [], datasheet_url: '', installation_url: '', is_active: true, sort_order: 0
 }
 
 const FEATURE_SUGGESTIONS = [
@@ -47,6 +47,7 @@ export default function ProductForm() {
   const [featureInput, setFeatureInput] = useState('')
   const [customAppInput, setCustomAppInput] = useState('')
   const [pdfUploading, setPdfUploading] = useState(false)
+  const [installationPdfUploading, setInstallationPdfUploading] = useState(false)
 
   useEffect(() => {
     api.get('/categories').then(r => setCategories(r.data || [])).catch(() => {})
@@ -63,6 +64,7 @@ export default function ProductForm() {
           shopee_url: p.shopee_url || '',
           images: p.images || [],
           datasheet_url: p.datasheet_url || '',
+          installation_url: p.installation_url || '',
           is_active: !!p.is_active,
           sort_order: p.sort_order || 0
         })
@@ -128,6 +130,22 @@ export default function ProductForm() {
       toast.success(`已上傳：${res.originalName}`)
     } catch { toast.error('PDF 上傳失敗') }
     finally { setPdfUploading(false) }
+  }
+
+  const handleInstallationPdfUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setInstallationPdfUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('pdf', file)
+      const res = await api.post('/upload/pdf', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      set('installation_url', res.url)
+      toast.success(`已上傳：${res.originalName}`)
+    } catch { toast.error('PDF 上傳失敗') }
+    finally { setInstallationPdfUploading(false) }
   }
 
   const handleSubmit = async (e) => {
@@ -250,6 +268,42 @@ export default function ProductForm() {
               <div className="text-sm text-gray-500">{pdfUploading ? '上傳中...' : '點擊上傳 PDF 技術文件'}</div>
               <div className="text-xs text-gray-400 mt-1">例：產品規格書、TDS 技術資料表、SDS 安全資料表</div>
               <input type="file" accept=".pdf" onChange={handlePdfUpload} disabled={pdfUploading} className="hidden" />
+            </label>
+          )}
+        </div>
+
+        {/* Installation Guide PDF */}
+        <div className="bg-white rounded shadow-sm p-6">
+          <h2 className="font-bold text-dark mb-1 pb-3 border-b border-gray-100">施工說明 PDF</h2>
+          <p className="text-xs text-gray-400 mb-4">上傳施工步驟說明書，客戶可在產品頁下載參考（最大 20MB）</p>
+
+          {form.installation_url ? (
+            <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded px-4 py-3">
+              <svg className="w-8 h-8 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+              </svg>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-dark truncate">
+                  {form.installation_url.split('/').pop()}
+                </p>
+                <a href={form.installation_url} target="_blank" rel="noreferrer"
+                  className="text-xs text-primary hover:underline">預覽 PDF ›</a>
+              </div>
+              <div className="flex gap-2">
+                <label className={`px-3 py-1.5 text-xs border border-gray-300 rounded cursor-pointer hover:bg-gray-100 ${installationPdfUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                  {installationPdfUploading ? '上傳中...' : '更換'}
+                  <input type="file" accept=".pdf" onChange={handleInstallationPdfUpload} disabled={installationPdfUploading} className="hidden" />
+                </label>
+                <button type="button" onClick={() => set('installation_url', '')}
+                  className="px-3 py-1.5 text-xs border border-red-200 text-red-500 rounded hover:bg-red-50">刪除</button>
+              </div>
+            </div>
+          ) : (
+            <label className={`block border-2 border-dashed border-gray-300 hover:border-primary rounded p-8 text-center cursor-pointer transition-colors ${installationPdfUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+              <div className="text-3xl mb-2">🔧</div>
+              <div className="text-sm text-gray-500">{installationPdfUploading ? '上傳中...' : '點擊上傳施工說明 PDF'}</div>
+              <div className="text-xs text-gray-400 mt-1">例：施工步驟說明書、施工注意事項、工法圖解</div>
+              <input type="file" accept=".pdf" onChange={handleInstallationPdfUpload} disabled={installationPdfUploading} className="hidden" />
             </label>
           )}
         </div>

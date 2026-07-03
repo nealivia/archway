@@ -118,11 +118,16 @@ export default function ProductDetail() {
               )}
 
               {/* CTA */}
-              <div className="flex gap-3">
+              <div className="flex gap-3 flex-wrap">
                 <Link to="/about#contact" className="btn-primary flex-1 text-center">立即詢價</Link>
                 {product.datasheet_url && (
                   <a href={product.datasheet_url} target="_blank" rel="noreferrer" className="btn-outline px-5">
                     技術文件
+                  </a>
+                )}
+                {product.installation_url && (
+                  <a href={product.installation_url} target="_blank" rel="noreferrer" className="btn-outline px-5">
+                    施工說明
                   </a>
                 )}
               </div>
