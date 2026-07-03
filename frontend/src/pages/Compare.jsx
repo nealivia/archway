@@ -3,16 +3,70 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { useCompare } from '../context/CompareContext'
 
-const Row = ({ label, children }) => (
-  <div className="grid border-b border-gray-100 last:border-0" style={{ gridTemplateColumns: '120px repeat(var(--cols), 1fr)' }}>
-    <div className="py-4 pr-4 text-xs font-medium text-gray-400 uppercase tracking-wide flex items-start pt-5">{label}</div>
-    {children}
-  </div>
-)
+// Feature families: tiers ordered low → high
+// If a product has a tier, it shows that tier; lower tiers in the same family are suppressed
+const FEATURE_FAMILIES = [
+  {
+    label: '彈性伸縮率',
+    tiers: ['彈性伸縮率 200% 以上', '彈性伸縮率 300% 以上'],
+  },
+  {
+    label: '使用年限',
+    tiers: ['使用年限 3–5 年以上', '使用年限 5–7 年以上', '使用年限 7–10 年以上'],
+  },
+]
 
-const Cell = ({ children }) => (
-  <div className="py-4 px-3 border-l border-gray-100 text-sm text-gray-600">{children}</div>
-)
+function getProductFamilyTier(product, family) {
+  let maxIdx = -1
+  family.tiers.forEach((tier, idx) => {
+    if ((product.features || []).includes(tier)) maxIdx = idx
+  })
+  return maxIdx
+}
+
+// Build comparison rows: collapse family features into one row each
+function buildFeatureRows(items) {
+  const allRaw = [...new Set(items.flatMap(p => p.features || []))]
+  const rows = []
+  const addedFamilies = new Set()
+  allRaw.forEach(f => {
+    const fam = FEATURE_FAMILIES.find(fm => fm.tiers.includes(f))
+    if (fam) {
+      if (!addedFamilies.has(fam.label)) {
+        addedFamilies.add(fam.label)
+        rows.push({ type: 'family', label: fam.label, family: fam })
+      }
+    } else {
+      rows.push({ type: 'single', label: f })
+    }
+  })
+  return rows
+}
+
+function FeatureCell({ product, row }) {
+  if (row.type === 'single') {
+    const has = (product.features || []).includes(row.label)
+    return (
+      <div className={`flex items-center gap-2 ${has ? '' : 'opacity-25'}`}>
+        {has
+          ? <svg className="w-4 h-4 text-primary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+          : <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+        }
+        <span className="text-xs text-gray-600 leading-snug">{row.label}</span>
+      </div>
+    )
+  }
+  // Family feature: show tier achieved or —
+  const tierIdx = getProductFamilyTier(product, row.family)
+  if (tierIdx < 0) return <span className="text-gray-300 text-xs">—</span>
+  const tierSuffix = row.family.tiers[tierIdx].replace(row.label, '').trim()
+  return (
+    <div className="flex items-center gap-2">
+      <svg className="w-4 h-4 text-primary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+      <span className="text-xs text-gray-700 font-medium">{tierSuffix}</span>
+    </div>
+  )
+}
 
 export default function Compare() {
   const { items, toggle, clear } = useCompare()
@@ -35,8 +89,9 @@ export default function Compare() {
   }
 
   const cols = items.length
-  const allFeatures = [...new Set(items.flatMap(p => p.features || []))]
+  const featureRows = buildFeatureRows(items)
   const allApplications = [...new Set(items.flatMap(p => p.applications || []))]
+  const gridCols = `140px repeat(${cols}, 1fr)`
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -49,22 +104,20 @@ export default function Compare() {
             <div className="section-eyebrow">商品比較</div>
             <h1 className="text-4xl md:text-5xl font-bold text-dark tracking-tight">規格比較</h1>
           </div>
-          <button onClick={clear} className="text-sm text-gray-400 hover:text-dark transition-colors">
-            清除全部
-          </button>
+          <button onClick={clear} className="text-sm text-gray-400 hover:text-dark transition-colors">清除全部</button>
         </div>
       </section>
 
-      <div className="flex-1 py-10 px-4 md:px-6 overflow-x-auto pb-24 md:pb-10">
-        <div className="max-w-5xl mx-auto" style={{ '--cols': cols }}>
+      <div className="flex-1 py-10 px-4 md:px-6 overflow-x-auto pb-28 md:pb-10">
+        <div className="max-w-5xl mx-auto">
 
-          {/* Product images row */}
-          <div className="grid mb-2" style={{ gridTemplateColumns: '120px repeat(' + cols + ', 1fr)' }}>
+          {/* Product header cards */}
+          <div className="grid gap-0 mb-6" style={{ gridTemplateColumns: gridCols }}>
             <div />
             {items.map(p => (
-              <div key={p.id} className="px-3 text-center">
+              <div key={p.id} className="px-4 text-center">
                 <div className="relative inline-block mb-3">
-                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden bg-gray-100 mx-auto">
+                  <div className="w-24 h-24 rounded-2xl overflow-hidden bg-gray-100 mx-auto shadow-sm">
                     {p.images?.[0]
                       ? <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
                       : <div className="w-full h-full flex items-center justify-center">
@@ -91,85 +144,107 @@ export default function Compare() {
             ))}
           </div>
 
-          <div className="bg-white rounded-2xl overflow-hidden border border-gray-100">
+          {/* Comparison table */}
+          <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 divide-y divide-gray-50">
 
-            {/* Short desc */}
-            <Row label="簡介">
+            {/* Section label helper */}
+            {/* 簡介 */}
+            <div className="grid" style={{ gridTemplateColumns: gridCols }}>
+              <div className="py-5 px-5 text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-start pt-6 bg-gray-50/60">簡介</div>
               {items.map(p => (
-                <Cell key={p.id}>{p.short_desc || <span className="text-gray-300">—</span>}</Cell>
+                <div key={p.id} className="py-5 px-5 border-l border-gray-100 text-sm text-gray-600 leading-relaxed">
+                  {p.short_desc || <span className="text-gray-300">—</span>}
+                </div>
               ))}
-            </Row>
+            </div>
 
             {/* Features */}
-            {allFeatures.length > 0 && (
-              <Row label="產品特點">
+            {featureRows.length > 0 && (
+              <div className="grid" style={{ gridTemplateColumns: gridCols }}>
+                <div className="py-5 px-5 text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-start pt-6 bg-gray-50/60">產品特點</div>
                 {items.map(p => (
-                  <Cell key={p.id}>
-                    <div className="space-y-1.5">
-                      {allFeatures.map(f => {
-                        const has = (p.features || []).includes(f)
-                        return (
-                          <div key={f} className={`flex items-start gap-2 ${has ? '' : 'opacity-30'}`}>
-                            {has
-                              ? <svg className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                              : <svg className="w-4 h-4 text-gray-300 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                            }
-                            <span className="text-xs leading-relaxed">{f}</span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </Cell>
+                  <div key={p.id} className="py-5 px-5 border-l border-gray-100 space-y-3">
+                    {featureRows.map((row, i) => (
+                      <FeatureCell key={i} product={p} row={row} />
+                    ))}
+                  </div>
                 ))}
-              </Row>
+              </div>
             )}
 
             {/* Applications */}
             {allApplications.length > 0 && (
-              <Row label="適用場景">
+              <div className="grid" style={{ gridTemplateColumns: gridCols }}>
+                <div className="py-5 px-5 text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-start pt-6 bg-gray-50/60">適用場景</div>
                 {items.map(p => (
-                  <Cell key={p.id}>
-                    <div className="flex flex-wrap gap-1">
+                  <div key={p.id} className="py-5 px-5 border-l border-gray-100">
+                    <div className="flex flex-wrap gap-1.5">
                       {allApplications.map(a => {
                         const has = (p.applications || []).includes(a)
                         return (
-                          <span key={a} className={`text-xs px-2 py-0.5 rounded-full ${has ? 'bg-gray-100 text-gray-600' : 'bg-gray-50 text-gray-300'}`}>
+                          <span key={a} className={`text-xs px-2.5 py-1 rounded-full transition-colors ${has ? 'bg-gray-100 text-gray-600' : 'text-gray-200'}`}>
                             {a}
                           </span>
                         )
                       })}
                     </div>
-                  </Cell>
+                  </div>
                 ))}
-              </Row>
+              </div>
             )}
 
-            {/* Shopee */}
-            <Row label="購買">
-              {items.map(p => (
-                <Cell key={p.id}>
-                  <div className="flex flex-col gap-2">
-                    <Link to={`/products/${p.id}`} className="text-xs text-primary hover:text-primary-dark transition-colors">
-                      查看詳情 ›
-                    </Link>
-                    {p.shopee_url && (
-                      <a href={p.shopee_url} target="_blank" rel="noopener noreferrer"
-                        className="text-xs text-orange-500 hover:text-orange-600 transition-colors">
-                        蝦皮購買 ›
+            {/* Downloads */}
+            {items.some(p => p.datasheet_url || p.installation_url) && (
+              <div className="grid" style={{ gridTemplateColumns: gridCols }}>
+                <div className="py-5 px-5 text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-start pt-6 bg-gray-50/60">文件下載</div>
+                {items.map(p => (
+                  <div key={p.id} className="py-5 px-5 border-l border-gray-100 space-y-2">
+                    {p.datasheet_url && (
+                      <a href={p.datasheet_url} target="_blank" rel="noreferrer"
+                        className="flex items-center gap-1.5 text-xs text-primary hover:underline">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        技術文件
                       </a>
                     )}
-                    <Link to="/about#contact" className="text-xs text-gray-500 hover:text-dark transition-colors">
-                      立即詢價 ›
-                    </Link>
+                    {p.installation_url && (
+                      <a href={p.installation_url} target="_blank" rel="noreferrer"
+                        className="flex items-center gap-1.5 text-xs text-primary hover:underline">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        施工說明
+                      </a>
+                    )}
+                    {!p.datasheet_url && !p.installation_url && (
+                      <span className="text-gray-300 text-xs">—</span>
+                    )}
                   </div>
-                </Cell>
+                ))}
+              </div>
+            )}
+
+            {/* Purchase */}
+            <div className="grid" style={{ gridTemplateColumns: gridCols }}>
+              <div className="py-5 px-5 text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-start pt-6 bg-gray-50/60">購買</div>
+              {items.map(p => (
+                <div key={p.id} className="py-5 px-5 border-l border-gray-100 space-y-2.5">
+                  <Link to={`/products/${p.id}`} className="block text-xs font-medium text-primary hover:text-primary-dark transition-colors">
+                    查看詳情 ›
+                  </Link>
+                  {p.shopee_url && (
+                    <a href={p.shopee_url} target="_blank" rel="noopener noreferrer"
+                      className="block text-xs text-orange-500 hover:text-orange-600 transition-colors">
+                      蝦皮購買 ›
+                    </a>
+                  )}
+                  <Link to="/about#contact" className="block text-xs text-gray-400 hover:text-dark transition-colors">
+                    立即詢價 ›
+                  </Link>
+                </div>
               ))}
-            </Row>
+            </div>
           </div>
 
-          {/* Add more */}
           {items.length < 3 && (
-            <div className="mt-6 text-center">
+            <div className="mt-8 text-center">
               <Link to="/products" className="text-sm text-primary hover:text-primary-dark transition-colors">
                 ＋ 再加入一件商品比較
               </Link>
