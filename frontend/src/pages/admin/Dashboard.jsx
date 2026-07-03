@@ -12,7 +12,7 @@ export default function Dashboard() {
   const [toggling, setToggling] = useState(false)
 
   useEffect(() => {
-    api.get('/products/admin/all?limit=5').then(r => {
+    api.get('/products/admin/all?limit=999').then(r => {
       const products = r.data || []
       setStats(s => ({
         ...s,
