@@ -29,6 +29,8 @@ export default function ProductsAdmin() {
     api.get('/categories').then(r => setCategories(r.data || [])).catch(() => {})
   }, [])
 
+  const featuredCount = products.filter(p => p.is_featured).length
+
   const toggleActive = async (p) => {
     try {
       await api.put(`/products/${p.id}`, {
@@ -39,6 +41,24 @@ export default function ProductsAdmin() {
         is_active: !p.is_active
       })
       toast.success(p.is_active ? '已下架' : '已上架')
+      fetchProducts()
+    } catch { toast.error('操作失敗') }
+  }
+
+  const toggleFeatured = async (p) => {
+    if (!p.is_featured && featuredCount >= 3) {
+      toast.error('首頁最多展示 3 件精選商品，請先取消其他精選')
+      return
+    }
+    try {
+      await api.put(`/products/${p.id}`, {
+        ...p,
+        features: p.features || [],
+        applications: p.applications || [],
+        images: p.images || [],
+        is_featured: !p.is_featured
+      })
+      toast.success(p.is_featured ? '已移除精選' : '已加入精選首頁')
       fetchProducts()
     } catch { toast.error('操作失敗') }
   }
@@ -61,7 +81,19 @@ export default function ProductsAdmin() {
           <h1 className="text-2xl font-bold text-dark">商品管理</h1>
           <p className="text-gray-500 text-sm mt-1">共 {total} 項商品</p>
         </div>
-        <Link to="/admin/products/new" className="btn-primary text-sm py-2 px-5">+ 新增商品</Link>
+        <div className="flex items-center gap-4">
+          {/* Featured slots indicator */}
+          <div className="flex items-center gap-1.5 text-sm text-gray-500">
+            <span>首頁精選</span>
+            <div className="flex gap-1">
+              {[0, 1, 2].map(i => (
+                <div key={i} className={`w-2.5 h-2.5 rounded-full ${i < featuredCount ? 'bg-primary' : 'bg-gray-200'}`} />
+              ))}
+            </div>
+            <span className="text-xs text-gray-400">{featuredCount}/3</span>
+          </div>
+          <Link to="/admin/products/new" className="btn-primary text-sm py-2 px-5">+ 新增商品</Link>
+        </div>
       </div>
 
       {/* Filters */}
@@ -93,16 +125,17 @@ export default function ProductsAdmin() {
                 <th className="text-left px-4 py-3 text-gray-500 font-medium hidden md:table-cell">分類</th>
                 <th className="text-left px-4 py-3 text-gray-500 font-medium hidden lg:table-cell">定價</th>
                 <th className="text-center px-4 py-3 text-gray-500 font-medium">狀態</th>
+                <th className="text-center px-4 py-3 text-gray-500 font-medium">首頁精選</th>
                 <th className="text-right px-5 py-3 text-gray-500 font-medium">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {loading ? (
-                <tr><td colSpan={5} className="text-center py-12 text-gray-400">載入中...</td></tr>
+                <tr><td colSpan={6} className="text-center py-12 text-gray-400">載入中...</td></tr>
               ) : products.length === 0 ? (
-                <tr><td colSpan={5} className="text-center py-12 text-gray-400">暫無商品</td></tr>
+                <tr><td colSpan={6} className="text-center py-12 text-gray-400">暫無商品</td></tr>
               ) : products.map(p => (
-                <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={p.id} className={`hover:bg-gray-50 transition-colors ${p.is_featured ? 'bg-red-50/30' : ''}`}>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
                       {p.images?.[0] ? (
@@ -111,7 +144,9 @@ export default function ProductsAdmin() {
                         <div className="w-10 h-10 bg-gray-100 rounded border border-gray-200 flex-shrink-0 flex items-center justify-center text-gray-300 text-lg">📷</div>
                       )}
                       <div>
-                        <div className="font-medium text-dark">{p.name}</div>
+                        <div className="font-medium text-dark flex items-center gap-1.5">
+                          {p.name}
+                        </div>
                         {p.short_desc && <div className="text-xs text-gray-400 truncate max-w-xs">{p.short_desc}</div>}
                       </div>
                     </div>
@@ -130,6 +165,21 @@ export default function ProductsAdmin() {
                       className={`text-xs px-3 py-1 rounded-full font-medium transition-colors ${p.is_active ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
                     >
                       {p.is_active ? '上架中' : '已下架'}
+                    </button>
+                  </td>
+                  <td className="px-4 py-4 text-center">
+                    <button
+                      onClick={() => toggleFeatured(p)}
+                      title={p.is_featured ? '取消精選' : '加入首頁精選'}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto transition-all ${
+                        p.is_featured
+                          ? 'bg-primary text-white shadow-sm'
+                          : 'bg-gray-100 text-gray-300 hover:bg-gray-200 hover:text-gray-400'
+                      }`}
+                    >
+                      <svg className="w-4 h-4" fill={p.is_featured ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                      </svg>
                     </button>
                   </td>
                   <td className="px-5 py-4 text-right">

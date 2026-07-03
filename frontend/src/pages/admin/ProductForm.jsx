@@ -452,22 +452,13 @@ export default function ProductForm() {
 
         {/* Status & Actions */}
         <div className="bg-white rounded shadow-sm p-6 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <div className={`relative w-11 h-6 rounded-full transition-colors ${form.is_active ? 'bg-green-500' : 'bg-gray-300'}`}
-                onClick={() => set('is_active', !form.is_active)}>
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.is_active ? 'translate-x-6' : 'translate-x-1'}`}></div>
-              </div>
-              <span className="text-sm font-medium text-dark">{form.is_active ? '立即上架' : '儲存為下架'}</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <div className={`relative w-11 h-6 rounded-full transition-colors ${form.is_featured ? 'bg-primary' : 'bg-gray-300'}`}
-                onClick={() => set('is_featured', !form.is_featured)}>
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.is_featured ? 'translate-x-6' : 'translate-x-1'}`}></div>
-              </div>
-              <span className="text-sm font-medium text-dark">精選首頁展示</span>
-            </label>
-          </div>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <div className={`relative w-11 h-6 rounded-full transition-colors ${form.is_active ? 'bg-green-500' : 'bg-gray-300'}`}
+              onClick={() => set('is_active', !form.is_active)}>
+              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.is_active ? 'translate-x-6' : 'translate-x-1'}`}></div>
+            </div>
+            <span className="text-sm font-medium text-dark">{form.is_active ? '立即上架' : '儲存為下架'}</span>
+          </label>
           <div className="flex gap-3">
             <button type="button" onClick={() => navigate('/admin/products')} className="px-5 py-2.5 border border-gray-200 text-sm font-medium hover:bg-gray-50 rounded-sm">取消</button>
             <button type="submit" disabled={saving} className="btn-primary text-sm py-2.5 px-6 disabled:opacity-60">
