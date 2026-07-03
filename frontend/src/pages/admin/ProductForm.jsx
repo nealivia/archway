@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 const EMPTY = {
   name: '', category_id: '', short_desc: '', description: '',
   features: [], applications: [], shopee_url: '',
-  images: [], datasheet_url: '', installation_url: '', is_active: true, is_featured: false, sort_order: 0
+  images: [], datasheet_url: '', installation_url: '', is_active: true, is_featured: false, price: '', sort_order: 0
 }
 
 const FEATURE_SUGGESTIONS = [
@@ -67,6 +67,7 @@ export default function ProductForm() {
           installation_url: p.installation_url || '',
           is_active: !!p.is_active,
           is_featured: !!p.is_featured,
+          price: p.price || '',
           sort_order: p.sort_order || 0
         })
       }).catch(() => toast.error('載入商品失敗'))
@@ -201,6 +202,15 @@ export default function ProductForm() {
                 <option value="">未分類</option>
                 {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">售價（NT$）</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">NT$</span>
+                <input type="number" value={form.price} onChange={e => set('price', e.target.value)} min="0" placeholder="0 = 洽詢"
+                  className="w-full border border-gray-200 pl-12 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary rounded-sm" />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">留空或填 0 則顯示「洽詢」</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">排序</label>

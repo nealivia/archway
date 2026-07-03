@@ -87,8 +87,15 @@ export default function ProductDetail() {
               )}
               <h1 className="text-3xl font-bold text-dark tracking-tight mb-4">{product.name}</h1>
               {product.short_desc && (
-                <p className="text-base text-gray-500 leading-relaxed mb-6">{product.short_desc}</p>
+                <p className="text-base text-gray-500 leading-relaxed mb-3">{product.short_desc}</p>
               )}
+              <div className="mb-6">
+                {product.price ? (
+                  <span className="text-2xl font-bold text-dark">NT$ {Number(product.price).toLocaleString()}</span>
+                ) : (
+                  <span className="text-base text-gray-400">價格洽詢</span>
+                )}
+              </div>
 
               {/* Shopee */}
               {product.shopee_url && (
