@@ -28,7 +28,7 @@ router.get('/', (req, res) => {
     FROM products p
     LEFT JOIN categories c ON p.category_id = c.id
     ${whereClause}
-    ORDER BY p.sort_order ASC, p.created_at DESC
+    ORDER BY c.sort_order ASC, c.name ASC, p.created_at ASC
     LIMIT ? OFFSET ?
   `).all(...params, Number(limit), Number(offset));
 
@@ -49,7 +49,7 @@ router.get('/featured', (req, res) => {
     FROM products p
     LEFT JOIN categories c ON p.category_id = c.id
     WHERE p.is_active = 1 AND p.is_featured = 1
-    ORDER BY p.sort_order ASC, p.created_at DESC
+    ORDER BY c.sort_order ASC, c.name ASC, p.created_at ASC
   `).all();
 
   const parsed = products.map(p => ({
@@ -111,7 +111,7 @@ router.get('/admin/all', authenticateToken, (req, res) => {
     FROM products p
     LEFT JOIN categories c ON p.category_id = c.id
     ${whereClause}
-    ORDER BY p.sort_order ASC, p.created_at DESC
+    ORDER BY c.sort_order ASC, c.name ASC, p.created_at ASC
     LIMIT ? OFFSET ?
   `).all(...params, Number(limit), Number(offset));
 

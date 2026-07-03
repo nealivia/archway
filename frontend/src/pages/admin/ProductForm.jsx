@@ -212,11 +212,6 @@ export default function ProductForm() {
               </div>
               <p className="text-xs text-gray-400 mt-1">留空或填 0 則顯示「洽詢」</p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">排序</label>
-              <input type="number" value={form.sort_order} onChange={e => set('sort_order', e.target.value)} min="0"
-                className="w-full border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:border-primary rounded-sm" />
-            </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">簡短描述</label>
               <p className="text-xs text-gray-400 mb-1.5">顯示在商品列表卡片上，建議 30–50 字，點出最大賣點。例：<span className="text-gray-500">高彈性水性聚氨酯，適合屋頂平台與浴室，無毒環保，乾燥快速。</span></p>
