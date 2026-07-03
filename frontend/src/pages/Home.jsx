@@ -30,11 +30,11 @@ export default function Home() {
           setProducts(featured)
         } else {
           // fallback：沒有精選商品時顯示最新 6 個
-          api.get('/products?limit=6').then(r2 => setProducts(r2.data || [])).catch(() => {})
+          api.get('/products?limit=3').then(r2 => setProducts(r2.data || [])).catch(() => {})
         }
       })
       .catch(() => {
-        api.get('/products?limit=6').then(r => setProducts(r.data || [])).catch(() => {})
+        api.get('/products?limit=3').then(r => setProducts(r.data || [])).catch(() => {})
       })
   }, [])
 
