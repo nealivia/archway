@@ -13,6 +13,7 @@ import ProductDetail from './pages/ProductDetail'
 import About from './pages/About'
 import Maintenance from './pages/Maintenance'
 import Compare from './pages/Compare'
+import TechSupport from './pages/TechSupport'
 
 // 後台頁面
 import AdminLogin from './pages/admin/Login'
@@ -80,6 +81,7 @@ export default function App() {
         <Route path="/products/:id" element={<ProductDetail />} />
         <Route path="/about" element={<About />} />
         <Route path="/compare" element={<Compare />} />
+        <Route path="/support" element={<TechSupport />} />
 
         {/* 後台路由 */}
         <Route path="/admin/login" element={<AdminLogin />} />
