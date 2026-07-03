@@ -236,7 +236,7 @@ export default function Compare() {
                     </a>
                   )}
                   <Link to="/about#contact" className="block text-xs text-gray-400 hover:text-dark transition-colors">
-                    立即詢價 ›
+                    立即洽購 ›
                   </Link>
                 </div>
               ))}

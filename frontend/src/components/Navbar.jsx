@@ -33,7 +33,7 @@ export default function Navbar() {
 
           {/* Desktop CTA */}
           <Link to="/about#contact" className="hidden md:block text-xs font-medium text-primary hover:text-primary-dark transition-colors">
-            立即詢價 ›
+            立即洽購 ›
           </Link>
         </div>
       </header>
