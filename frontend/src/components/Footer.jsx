@@ -24,9 +24,9 @@ export default function Footer() {
             <div>
               <div className="text-xs font-medium text-dark mb-3">聯絡</div>
               <div className="space-y-2 text-xs text-gray-500">
-                <div>02-2365-0047</div>
-                <div>archway1991@gmail.com</div>
-                <div>LINE：@archway</div>
+                <a href="tel:0223650047" className="block hover:text-dark transition-colors">02-2365-0047</a>
+                <a href="mailto:archway1991@gmail.com" className="block hover:text-dark transition-colors">archway1991@gmail.com</a>
+                <a href="https://line.me/ti/p/@archway" target="_blank" rel="noopener noreferrer" className="block hover:text-dark transition-colors">LINE：@archway</a>
               </div>
             </div>
           </div>
