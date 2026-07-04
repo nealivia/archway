@@ -65,7 +65,7 @@ function initDatabase() {
 
     CREATE TABLE IF NOT EXISTS stores (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
+      name TEXT NOT NULL UNIQUE,
       address TEXT DEFAULT '',
       phone TEXT DEFAULT '',
       hours TEXT DEFAULT '',
@@ -104,14 +104,11 @@ function initDatabase() {
     console.log('');
   }
 
-  // 初始化門市資料
-  const storeCount = db.prepare('SELECT COUNT(*) as c FROM stores').get();
-  if (storeCount.c === 0) {
-    const insertStore = db.prepare('INSERT INTO stores (name, address, phone, hours, sort_order) VALUES (?, ?, ?, ?, ?)');
-    insertStore.run('和平店', '台北市中正區和平西路一段136號1樓', '02-2365-0047', '週一至週六 07:00–19:00', 1);
-    insertStore.run('板橋店', '新北市板橋區中山路二段384號1樓', '02-2957-6311', '週一至週五 07:00–19:00', 2);
-    insertStore.run('樹林 Sika 展示店', '新北市樹林區東興街37號1樓', '02-8685-8039', '週一至週五 08:00–17:00', 3);
-  }
+  // 初始化門市資料（INSERT OR IGNORE 確保每次部署都補齊預設資料）
+  const insertStore = db.prepare('INSERT OR IGNORE INTO stores (name, address, phone, hours, sort_order) VALUES (?, ?, ?, ?, ?)');
+  insertStore.run('和平店', '台北市中正區和平西路一段136號1樓', '02-2365-0047', '週一至週六 07:00–19:00', 1);
+  insertStore.run('板橋店', '新北市板橋區中山路二段384號1樓', '02-2957-6311', '週一至週五 07:00–19:00', 2);
+  insertStore.run('樹林 Sika 展示店', '新北市樹林區東興街37號1樓', '02-8685-8039', '週一至週五 08:00–17:00', 3);
 
   // 欄位升級 migrations（順序重要：先刪舊欄位，再加新欄位）
   try { db.exec("ALTER TABLE products DROP COLUMN price_unit"); } catch (e) { /* 忽略 */ }
