@@ -106,7 +106,7 @@ export default function Home() {
 
           {products.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {products.map(p => <ProductCard key={p.id} product={p} />)}
+              {products.map(p => <ProductCard key={p.id} product={p} variant="overlay" />)}
             </div>
           ) : (
             <div className="text-center py-20 text-gray-300">
