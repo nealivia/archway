@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import Sidebar from '../../components/admin/Sidebar'
+import MobilePreview from '../../components/admin/MobilePreview'
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
@@ -14,12 +16,12 @@ export default function AdminLayout() {
 
       {/* Sidebar - desktop */}
       <div className="hidden md:flex w-60 flex-shrink-0 flex-col shadow-xl">
-        <Sidebar />
+        <Sidebar onOpenPreview={() => setPreviewOpen(true)} />
       </div>
 
       {/* Sidebar - mobile drawer */}
       <div className={`fixed inset-y-0 left-0 z-30 w-60 flex flex-col shadow-xl transition-transform duration-300 md:hidden ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <Sidebar onClose={() => setSidebarOpen(false)} />
+        <Sidebar onClose={() => setSidebarOpen(false)} onOpenPreview={() => { setSidebarOpen(false); setPreviewOpen(true) }} />
       </div>
 
       {/* Main */}
@@ -38,6 +40,9 @@ export default function AdminLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Mobile preview modal */}
+      {previewOpen && <MobilePreview onClose={() => setPreviewOpen(false)} />}
     </div>
   )
 }

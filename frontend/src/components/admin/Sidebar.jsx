@@ -10,7 +10,7 @@ const navItems = [
   { to: '/admin/settings', label: '帳號設定', icon: '⚙️' }
 ]
 
-export default function Sidebar({ onClose }) {
+export default function Sidebar({ onClose, onOpenPreview }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
 
@@ -62,8 +62,14 @@ export default function Sidebar({ onClose }) {
         ))}
       </nav>
 
-      {/* Logout */}
-      <div className="px-3 py-4 border-t border-gray-700">
+      {/* Preview + Logout */}
+      <div className="px-3 py-4 border-t border-gray-700 space-y-1">
+        <button
+          onClick={onOpenPreview}
+          className="flex items-center gap-3 w-full px-4 py-2.5 rounded text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+        >
+          <span>📱</span> 手機預覽
+        </button>
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 w-full px-4 py-2.5 rounded text-sm font-medium text-gray-300 hover:bg-red-900/40 hover:text-red-400 transition-colors"
