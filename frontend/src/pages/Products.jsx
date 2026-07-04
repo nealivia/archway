@@ -53,7 +53,7 @@ function HScrollRow({ children, className = '' }) {
         <button
           onClick={() => scroll(-1)}
           aria-label="向左滑動"
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-500 hover:text-dark shadow-sm transition-colors"
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-dark text-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-700 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -67,7 +67,7 @@ function HScrollRow({ children, className = '' }) {
         <button
           onClick={() => scroll(1)}
           aria-label="向右滑動"
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-500 hover:text-dark shadow-sm transition-colors"
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-dark text-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-700 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
