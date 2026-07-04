@@ -46,7 +46,7 @@ export default function Home() {
       <section className="bg-gray-50 pt-12 pb-10 md:pt-20 md:pb-16 text-center px-6">
         <img src="/archway_logo.png" alt="ARCHWAY 松上防水" className="h-10 md:h-12 w-auto mx-auto mb-2 opacity-70" />
         <h1 className="text-5xl md:text-7xl font-bold text-dark tracking-tight leading-none mb-4 mt-2">
-          滴水不漏。
+          滴水不漏
         </h1>
         <p className="text-sm md:text-base text-gray-400 mb-8 max-w-lg mx-auto leading-relaxed">
           30 年專業經驗，為您的建築提供最完整的防水解決方案
