@@ -58,7 +58,7 @@ export default function Home() {
         <div className="pointer-events-none absolute -top-20 -right-20 w-72 h-72 rounded-full border border-gray-200" />
         <div className="pointer-events-none absolute -top-10 -right-10 w-44 h-44 rounded-full border border-gray-200" />
         <div className="pointer-events-none absolute -bottom-16 -left-16 w-56 h-56 rounded-full border border-gray-200" />
-        <div className="relative flex flex-col items-center mb-3">
+        <div className="relative flex flex-col items-center mb-2">
           <img src="/archway_logo.png" alt="ARCHWAY 松上防水" className="h-[4.5rem] md:h-28 w-auto mb-2" />
           <span className="text-2xl md:text-[2.5rem] font-bold text-dark tracking-[0.12em]" style={{display:'inline-block', transform:'scaleX(0.95)'}}>松上ARCHWAY</span>
         </div>
