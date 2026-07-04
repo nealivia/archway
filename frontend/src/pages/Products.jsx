@@ -91,28 +91,28 @@ export default function Products() {
       {/* ── 分類橫向捲軸（Apple 風格）── */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="overflow-x-auto scrollbar-hide">
-          <div className="flex gap-1 px-4 py-3 w-max">
+          <div className="flex gap-2 px-4 py-4 w-max">
             {/* 全部 */}
             <button
               onClick={() => setCategory('')}
-              className={`flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-colors min-w-[64px] ${
+              className={`flex flex-col items-center gap-1.5 px-5 py-3 rounded-2xl transition-colors min-w-[76px] ${
                 !categoryId ? 'bg-dark text-white' : 'text-gray-500 hover:bg-gray-50'
               }`}
             >
-              <span className="text-2xl">🏠</span>
-              <span className="text-[11px] font-medium whitespace-nowrap">全部</span>
+              <span className="text-3xl">🏠</span>
+              <span className="text-[12px] font-medium whitespace-nowrap">全部</span>
             </button>
 
             {categories.map(c => (
               <button
                 key={c.id}
                 onClick={() => setCategory(String(c.id))}
-                className={`flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-colors min-w-[64px] ${
+                className={`flex flex-col items-center gap-1.5 px-5 py-3 rounded-2xl transition-colors min-w-[76px] ${
                   categoryId === String(c.id) ? 'bg-dark text-white' : 'text-gray-500 hover:bg-gray-50'
                 }`}
               >
-                <span className="text-2xl">{CAT_ICONS[c.name] || '📦'}</span>
-                <span className="text-[11px] font-medium whitespace-nowrap">{c.name}</span>
+                <span className="text-3xl">{CAT_ICONS[c.name] || '📦'}</span>
+                <span className="text-[12px] font-medium whitespace-nowrap">{c.name}</span>
               </button>
             ))}
           </div>
@@ -143,17 +143,27 @@ export default function Products() {
               ))}
             </div>
           ) : showGrouped ? (
-            /* ── 全部：依分類分段顯示 ── */
-            <div className="space-y-12">
+            /* ── 全部：依分類橫向滑動 ── */
+            <div className="space-y-10">
               {grouped.map(cat => (
                 <div key={cat.id} ref={el => sectionRefs.current[cat.id] = el}>
-                  <div className="flex items-center gap-2 mb-5">
-                    <span className="text-2xl">{CAT_ICONS[cat.name] || '📦'}</span>
-                    <h2 className="text-xl font-bold text-dark">{cat.name}</h2>
-                    <span className="text-xs text-gray-400 ml-1">{cat.products.length} 項</span>
+                  <div className="flex items-center justify-between mb-4 px-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{CAT_ICONS[cat.name] || '📦'}</span>
+                      <h2 className="text-lg font-bold text-dark">{cat.name}</h2>
+                      <span className="text-xs text-gray-400">{cat.products.length} 項</span>
+                    </div>
+                    <button onClick={() => setCategory(String(cat.id))} className="text-xs text-primary">查看全部 ›</button>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {cat.products.map(p => <ProductCard key={p.id} product={p} />)}
+                  {/* 橫向滑動列 */}
+                  <div className="overflow-x-auto scrollbar-hide -mx-4">
+                    <div className="flex gap-3 px-4 w-max pb-2">
+                      {cat.products.map(p => (
+                        <div key={p.id} className="w-40 flex-shrink-0">
+                          <ProductCard product={p} />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ))}
