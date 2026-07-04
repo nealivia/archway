@@ -8,11 +8,12 @@ export default function ProductCard({ product, variant }) {
 
   // ── Overlay variant（首頁精選）──
   if (variant === 'overlay') {
+    const overlayImage = product.images?.[1] || product.images?.[0]
     return (
       <div className="group relative rounded-2xl overflow-hidden aspect-[4/3] bg-gray-100">
         <Link to={`/products/${product.id}`} className="block w-full h-full">
-          {mainImage ? (
-            <img src={mainImage} alt={product.name}
+          {overlayImage ? (
+            <img src={overlayImage} alt={product.name}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gray-100">
