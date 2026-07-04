@@ -118,6 +118,13 @@ export default function Home() {
         </div>
       </section>
 
+      {/* CTA */}
+      <section className="py-16 md:py-24 bg-dark text-center px-6">
+        <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-3">需要專業建議？</h2>
+        <p className="text-base md:text-lg text-gray-400 mb-8">技術團隊隨時提供免費諮詢與報價</p>
+        <Link to="/about#contact" className="btn-primary inline-block">立即聯絡我們</Link>
+      </section>
+
       {/* 門市據點 */}
       {stores.length > 0 && (
         <section className="py-12 md:py-20 bg-white px-6">
@@ -156,13 +163,6 @@ export default function Home() {
           </div>
         </section>
       )}
-
-      {/* CTA */}
-      <section className="py-16 md:py-24 bg-dark text-center px-6">
-        <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-3">需要專業建議？</h2>
-        <p className="text-base md:text-lg text-gray-400 mb-8">技術團隊隨時提供免費諮詢與報價</p>
-        <Link to="/about#contact" className="btn-primary inline-block">立即聯絡我們</Link>
-      </section>
 
       <Footer />
     </div>
