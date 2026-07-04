@@ -6,7 +6,8 @@ const navItems = [
   { to: '/admin/products', label: '商品管理', icon: '📦' },
   { to: '/admin/categories', label: '分類管理', icon: '🏷️' },
   { to: '/admin/stores', label: '門市管理', icon: '🏪' },
-  { to: '/admin/users', label: '帳號管理', icon: '👥', superOnly: true }
+  { to: '/admin/users', label: '帳號管理', icon: '👥', superOnly: true },
+  { to: '/admin/settings', label: '帳號設定', icon: '⚙️' }
 ]
 
 export default function Sidebar({ onClose }) {
