@@ -155,7 +155,7 @@ export default function ProductDetail() {
               {/* Compare */}
               <button
                 onClick={() => toggle(product)}
-                className={`btn-outline px-5 flex items-center gap-2 transition-colors ${
+                className={`mt-4 btn-outline px-5 flex items-center gap-2 transition-colors ${
                   isSelected(product.id) ? 'border-primary text-primary' : ''
                 }`}
               >
