@@ -49,7 +49,7 @@ export default function Home() {
           <span className="text-2xl md:text-3xl font-semibold text-gray-500 tracking-widest">松上防水</span>
         </div>
         <h1 className="text-5xl md:text-7xl font-bold text-dark tracking-tight leading-none mb-4 mt-2">
-          滴水不漏
+          守護建築，從防水開始
         </h1>
         <p className="text-sm md:text-base text-gray-400 mb-8 max-w-lg mx-auto leading-relaxed">
           30 年專業經驗，為您的建築提供最完整的防水解決方案
