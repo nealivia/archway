@@ -6,13 +6,6 @@ import Footer from '../components/Footer'
 import ProductCard from '../components/ProductCard'
 import api from '../api/client'
 
-const features = [
-  { icon: '🛡️', title: '高效防水', desc: '採用最新配方，防水效果持久穩定，抵禦各種極端天氣條件' },
-  { icon: '🔬', title: '科技研發', desc: '持續投入研發，掌握最新防水技術，確保產品性能領先業界' },
-  { icon: '✅', title: '品質保證', desc: '通過 ISO 認證，每批產品嚴格品管，給您最可靠的保障' },
-  { icon: '🏗️', title: '專業施工', desc: '提供完整的施工指導與技術支援，確保施工品質與效果' }
-]
-
 const stats = [
   { num: '30+', label: '年產業經驗' },
   { num: '500+', label: '完工專案' },
@@ -83,30 +76,13 @@ export default function Home() {
       </section>
 
 
-      {/* Features */}
-      <section className="py-12 md:py-20 bg-white px-6">
-        <div className="max-w-5xl mx-auto">
-          <p className="section-title text-center mb-3">品質，您可以放心</p>
-          <p className="text-base md:text-lg text-gray-500 text-center mb-10 md:mb-14">通過多項國際認證，專業品質保證</p>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-10">
-            {features.map(f => (
-              <div key={f.title}>
-                <div className="text-3xl mb-4">{f.icon}</div>
-                <h3 className="text-base font-semibold text-dark mb-2">{f.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Products */}
-      <section className="py-12 md:py-20 bg-gray-50 px-6">
+      <section className="py-16 md:py-28 bg-gray-50 px-6">
         <div className="max-w-5xl mx-auto">
-          <div className="flex items-end justify-between mb-10">
+          <div className="flex items-end justify-between mb-12">
             <div>
               <div className="section-eyebrow">精選產品</div>
-              <h2 className="text-3xl font-bold text-dark tracking-tight">高效防水材料</h2>
+              <h2 className="text-4xl md:text-5xl font-bold text-dark tracking-tight">高效防水材料</h2>
             </div>
             <Link to="/products" className="text-sm text-primary hover:text-primary-dark transition-colors">
               查看全部 ›
