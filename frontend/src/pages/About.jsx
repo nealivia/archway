@@ -5,37 +5,17 @@ import Footer from '../components/Footer'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 
-const stores = [
-  {
-    name: '和平店',
-    address: '台北市中正區和平西路一段136號1樓',
-    mapUrl: 'https://maps.google.com/?q=台北市中正區和平西路一段136號1樓',
-    phone: '02-2365-0047',
-    tel: '0223650047',
-    hours: '週一至週六 07:00–19:00'
-  },
-  {
-    name: '板橋店',
-    address: '新北市板橋區中山路二段384號1樓',
-    mapUrl: 'https://maps.google.com/?q=新北市板橋區中山路二段384號1樓',
-    phone: '02-2957-6311',
-    tel: '0229576311',
-    hours: '週一至週五 07:00–19:00'
-  },
-  {
-    name: '樹林 Sika 展示店',
-    address: '新北市樹林區東興街37號1樓',
-    mapUrl: 'https://maps.google.com/?q=新北市樹林區東興街37號1樓',
-    phone: '02-8685-8039',
-    tel: '0286858039',
-    hours: '週一至週五 08:00–17:00'
-  }
-]
-
 export default function About() {
+  const [stores, setStores] = useState([])
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' })
   const [sending, setSending] = useState(false)
   const { hash } = useLocation()
+
+  useEffect(() => {
+    api.get('/stores')
+      .then(r => setStores(r.data?.data || []))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (hash) {
@@ -119,20 +99,26 @@ export default function About() {
           </div>
           <div className="grid md:grid-cols-3 gap-4">
             {stores.map(store => (
-              <div key={store.name} className="bg-gray-50 rounded-2xl p-6">
+              <div key={store.id} className="bg-gray-50 rounded-2xl p-6">
                 <h3 className="font-semibold text-dark text-base mb-4">{store.name}</h3>
                 <div className="space-y-3">
-                  <a href={store.mapUrl} target="_blank" rel="noopener noreferrer"
-                    className="flex items-start gap-2 text-sm text-gray-500 hover:text-dark transition-colors">
-                    <span className="flex-shrink-0 mt-0.5">📍</span>
-                    <span>{store.address}</span>
-                  </a>
-                  <a href={`tel:${store.tel}`} className="flex items-center gap-2 text-sm text-gray-500 hover:text-dark transition-colors">
-                    <span>📞</span><span>{store.phone}</span>
-                  </a>
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
-                    <span>🕐</span><span>{store.hours}</span>
-                  </div>
+                  {store.address && (
+                    <a href={`https://maps.google.com/?q=${encodeURIComponent(store.address)}`} target="_blank" rel="noopener noreferrer"
+                      className="flex items-start gap-2 text-sm text-gray-500 hover:text-dark transition-colors">
+                      <span className="flex-shrink-0 mt-0.5">📍</span>
+                      <span>{store.address}</span>
+                    </a>
+                  )}
+                  {store.phone && (
+                    <a href={`tel:${store.phone.replace(/\D/g, '')}`} className="flex items-center gap-2 text-sm text-gray-500 hover:text-dark transition-colors">
+                      <span>📞</span><span>{store.phone}</span>
+                    </a>
+                  )}
+                  {store.hours && (
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <span>🕐</span><span>{store.hours}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

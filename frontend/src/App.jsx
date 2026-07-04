@@ -23,6 +23,7 @@ import ProductsAdmin from './pages/admin/ProductsAdmin'
 import ProductForm from './pages/admin/ProductForm'
 import UsersAdmin from './pages/admin/UsersAdmin'
 import CategoriesAdmin from './pages/admin/CategoriesAdmin'
+import StoresAdmin from './pages/admin/StoresAdmin'
 import ProtectedRoute from './components/admin/ProtectedRoute'
 
 export default function App() {
@@ -61,6 +62,7 @@ export default function App() {
             <Route path="products/new" element={<ProductForm />} />
             <Route path="products/:id/edit" element={<ProductForm />} />
             <Route path="categories" element={<CategoriesAdmin />} />
+            <Route path="stores" element={<StoresAdmin />} />
             <Route path="users" element={<UsersAdmin />} />
           </Route>
           <Route path="*" element={<Maintenance />} />
@@ -95,6 +97,7 @@ export default function App() {
           <Route path="products/new" element={<ProductForm />} />
           <Route path="products/:id/edit" element={<ProductForm />} />
           <Route path="categories" element={<CategoriesAdmin />} />
+          <Route path="stores" element={<StoresAdmin />} />
           <Route path="users" element={<UsersAdmin />} />
         </Route>
       </Routes>
