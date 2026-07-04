@@ -1,11 +1,12 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useCompare } from '../context/CompareContext'
 
 export default function CompareBar() {
   const { items, toggle, clear } = useCompare()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
 
-  if (items.length === 0) return null
+  if (items.length === 0 || pathname === '/compare') return null
 
   return (
     <div className="fixed bottom-16 md:bottom-0 left-0 right-0 z-40 px-4 pb-3 md:pb-4 pointer-events-none">
