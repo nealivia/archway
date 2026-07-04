@@ -127,7 +127,7 @@ export default function Home() {
 
       {/* 門市據點 */}
       {stores.length > 0 && (
-        <section className="py-12 md:py-20 bg-white px-6">
+        <section id="stores" className="py-12 md:py-20 bg-white px-6">
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-10">
               <div className="section-eyebrow">門市據點</div>

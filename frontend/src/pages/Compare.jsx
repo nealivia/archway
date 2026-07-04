@@ -232,7 +232,7 @@ export default function Compare() {
                       蝦皮購買 ›
                     </a>
                   )}
-                  <Link to="/about#contact" className="block text-xs text-gray-400 hover:text-dark transition-colors">
+                  <Link to="/#stores" className="block text-xs text-gray-400 hover:text-dark transition-colors">
                     立即洽購 ›
                   </Link>
                 </div>
