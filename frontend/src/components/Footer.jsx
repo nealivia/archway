@@ -17,7 +17,7 @@ export default function Footer() {
               <div className="text-xs font-medium text-dark mb-3">連結</div>
               <div className="space-y-2">
                 {[['首頁', '/'], ['產品目錄', '/products'], ['關於我們', '/about']].map(([label, to]) => (
-                  <Link key={to} to={to} className="block text-xs text-gray-500 hover:text-dark transition-colors">{label}</Link>
+                  <Link key={to} to={to} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="block text-xs text-gray-500 hover:text-dark transition-colors">{label}</Link>
                 ))}
               </div>
             </div>
