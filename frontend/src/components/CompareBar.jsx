@@ -55,9 +55,16 @@ export default function CompareBar() {
                       </button>
                     </>
                   ) : (
-                    <div className="w-full h-full rounded-xl border border-dashed border-gray-600 flex items-center justify-center">
-                      <span className="text-gray-600 text-lg">+</span>
-                    </div>
+                    <button
+                      onClick={() => {
+                        const cat = items[0]?.category_id
+                        navigate(cat ? `/products?category_id=${cat}` : '/products')
+                      }}
+                      className="w-full h-full rounded-xl border border-dashed border-gray-600 flex items-center justify-center hover:border-gray-400 hover:bg-gray-800 transition-colors"
+                      title="新增比較商品"
+                    >
+                      <span className="text-gray-500 text-lg">+</span>
+                    </button>
                   )}
                 </div>
               )
