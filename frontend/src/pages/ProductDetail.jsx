@@ -57,9 +57,9 @@ export default function ProductDetail() {
           <div className="grid md:grid-cols-2 gap-16">
             {/* Images */}
             <div>
-              <div className="rounded-2xl overflow-hidden bg-gray-50 aspect-square mb-3">
+              <div className="aspect-square mb-3">
                 {product.images?.length > 0 ? (
-                  <img src={product.images[selectedImg]} alt={product.name} className="w-full h-full object-contain p-4" />
+                  <img src={product.images[selectedImg]} alt={product.name} className="w-full h-full object-contain" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <svg className="w-20 h-20 text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
