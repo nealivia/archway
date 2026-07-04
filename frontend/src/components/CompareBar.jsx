@@ -1,12 +1,27 @@
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useCompare } from '../context/CompareContext'
 
 export default function CompareBar() {
   const { items, toggle, clear } = useCompare()
   const navigate = useNavigate()
-  const { pathname } = useLocation()
+  const [dismissed, setDismissed] = useState(false)
+  const dismissedAtRef = useRef(null)
 
-  if (items.length === 0 || pathname === '/compare') return null
+  // 有新商品加入時重新顯示
+  useEffect(() => {
+    if (dismissed && items.length !== dismissedAtRef.current) {
+      setDismissed(false)
+    }
+  }, [items.length])
+
+  if (items.length === 0 || dismissed) return null
+
+  const handleCompare = () => {
+    dismissedAtRef.current = items.length
+    setDismissed(true)
+    navigate('/compare')
+  }
 
   return (
     <div className="fixed bottom-16 md:bottom-0 left-0 right-0 z-40 px-4 pb-3 md:pb-4 pointer-events-none">
@@ -52,7 +67,7 @@ export default function CompareBar() {
           {/* Actions */}
           <div className="flex flex-col gap-2 flex-shrink-0">
             <button
-              onClick={() => navigate('/compare')}
+              onClick={handleCompare}
               disabled={items.length < 2}
               className="bg-primary hover:bg-primary-dark disabled:opacity-40 text-white text-sm font-medium px-5 py-2 rounded-full transition-colors whitespace-nowrap">
               比較 {items.length > 0 && `(${items.length})`}
