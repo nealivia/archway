@@ -3,12 +3,14 @@ import { useParams, Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import api from '../api/client'
+import { useCompare } from '../context/CompareContext'
 
 export default function ProductDetail() {
   const { id } = useParams()
   const [product, setProduct] = useState(null)
   const [selectedImg, setSelectedImg] = useState(0)
   const [loading, setLoading] = useState(true)
+  const { toggle, isSelected } = useCompare()
 
   useEffect(() => {
     api.get(`/products/${id}`)
@@ -149,6 +151,28 @@ export default function ProductDetail() {
                   </a>
                 )}
               </div>
+
+              {/* Compare */}
+              <button
+                onClick={() => toggle(product)}
+                className={`mt-3 flex items-center gap-2 text-sm transition-colors ${
+                  isSelected(product.id)
+                    ? 'text-primary font-medium'
+                    : 'text-gray-400 hover:text-dark'
+                }`}
+              >
+                {isSelected(product.id) ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                    已加入比較
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7" /></svg>
+                    加入比較
+                  </>
+                )}
+              </button>
             </div>
           </div>
 
