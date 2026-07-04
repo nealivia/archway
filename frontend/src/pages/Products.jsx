@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
@@ -20,6 +20,64 @@ const CAT_ICONS = {
   'PU/EPOXY':      '🧪',
 }
 
+// 可重用的橫向滑動容器，帶左右箭頭
+function HScrollRow({ children, className = '' }) {
+  const ref = useRef(null)
+  const [canLeft, setCanLeft] = useState(false)
+  const [canRight, setCanRight] = useState(false)
+
+  const update = useCallback(() => {
+    const el = ref.current
+    if (!el) return
+    setCanLeft(el.scrollLeft > 8)
+    setCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 8)
+  }, [])
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    update()
+    el.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
+    return () => {
+      el.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [update])
+
+  const scroll = (dir) => ref.current?.scrollBy({ left: dir * 240, behavior: 'smooth' })
+
+  return (
+    <div className={`relative ${className}`}>
+      {canLeft && (
+        <button
+          onClick={() => scroll(-1)}
+          aria-label="向左滑動"
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-500 hover:text-dark shadow-sm transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+      )}
+      <div ref={ref} className="overflow-x-auto scrollbar-hide">
+        {children}
+      </div>
+      {canRight && (
+        <button
+          onClick={() => scroll(1)}
+          aria-label="向右滑動"
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-500 hover:text-dark shadow-sm transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      )}
+    </div>
+  )
+}
+
 export default function Products() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [allProducts, setAllProducts] = useState([])
@@ -30,12 +88,10 @@ export default function Products() {
 
   const categoryId = searchParams.get('category_id') || ''
 
-  // 載入分類
   useEffect(() => {
     api.get('/categories').then(r => setCategories(r.data || [])).catch(() => {})
   }, [])
 
-  // 載入全部產品
   useEffect(() => {
     setLoading(true)
     const params = new URLSearchParams({ limit: 200 })
@@ -46,10 +102,8 @@ export default function Products() {
       .finally(() => setLoading(false))
   }, [search])
 
-  // 選分類
   const setCategory = (id) => {
     setSearchParams(id ? { category_id: id } : {})
-    // 滾到對應 section
     if (id && sectionRefs.current[id]) {
       sectionRefs.current[id].scrollIntoView({ behavior: 'smooth', block: 'start' })
     } else {
@@ -62,12 +116,10 @@ export default function Products() {
     setSearchParams(search ? { search } : {})
   }
 
-  // 過濾＆分組
   const filtered = categoryId
     ? allProducts.filter(p => String(p.category_id) === categoryId)
     : allProducts
 
-  // 依分類分組（無搜尋且無選分類時）
   const grouped = categories.map(cat => ({
     ...cat,
     products: allProducts.filter(p => p.category_id === cat.id)
@@ -88,11 +140,10 @@ export default function Products() {
         </div>
       </div>
 
-      {/* ── 分類橫向捲軸（Apple 風格）── */}
+      {/* ── 分類捲軸（含左右箭頭）── */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="overflow-x-auto scrollbar-hide">
+        <HScrollRow>
           <div className="flex gap-2 px-4 py-4 w-max">
-            {/* 全部 */}
             <button
               onClick={() => setCategory('')}
               className={`flex flex-col items-center gap-1.5 px-5 py-3 rounded-2xl transition-colors min-w-[76px] ${
@@ -102,7 +153,6 @@ export default function Products() {
               <span className="text-3xl">🏠</span>
               <span className="text-[12px] font-medium whitespace-nowrap">全部</span>
             </button>
-
             {categories.map(c => (
               <button
                 key={c.id}
@@ -116,7 +166,7 @@ export default function Products() {
               </button>
             ))}
           </div>
-        </div>
+        </HScrollRow>
       </div>
 
       <div className="flex-1 py-8 bg-white px-4">
@@ -143,7 +193,6 @@ export default function Products() {
               ))}
             </div>
           ) : showGrouped ? (
-            /* ── 全部：依分類橫向滑動 ── */
             <div className="space-y-10">
               {grouped.map(cat => (
                 <div key={cat.id} ref={el => sectionRefs.current[cat.id] = el}>
@@ -155,8 +204,8 @@ export default function Products() {
                     </div>
                     <button onClick={() => setCategory(String(cat.id))} className="text-xs text-primary">查看全部 ›</button>
                   </div>
-                  {/* 橫向滑動列 */}
-                  <div className="overflow-x-auto scrollbar-hide -mx-4">
+                  {/* 橫向滑動列（含箭頭）*/}
+                  <HScrollRow className="-mx-4">
                     <div className="flex gap-3 px-4 w-max pb-2">
                       {cat.products.map(p => (
                         <div key={p.id} className="w-40 flex-shrink-0">
@@ -164,7 +213,7 @@ export default function Products() {
                         </div>
                       ))}
                     </div>
-                  </div>
+                  </HScrollRow>
                 </div>
               ))}
               {grouped.length === 0 && (
@@ -174,7 +223,6 @@ export default function Products() {
               )}
             </div>
           ) : (
-            /* ── 篩選結果 ── */
             <>
               <p className="text-xs text-gray-400 mb-5">共 {filtered.length} 項產品</p>
               {filtered.length > 0 ? (
