@@ -195,7 +195,7 @@ export default function Products() {
           ) : showGrouped ? (
             <div className="space-y-10">
               {grouped.map(cat => (
-                <div key={cat.id} ref={el => sectionRefs.current[cat.id] = el}>
+                <div key={cat.id} ref={el => sectionRefs.current[cat.id] = el} style={{ scrollMarginTop: '160px' }}>
                   <div className="flex items-center justify-between mb-4 px-1">
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">{CAT_ICONS[cat.name] || '📦'}</span>
