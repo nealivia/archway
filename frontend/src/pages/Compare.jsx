@@ -119,41 +119,41 @@ export default function Compare() {
       <div className="flex-1 py-10 px-4 md:px-6 overflow-x-auto pb-28 md:pb-10">
         <div className="max-w-5xl mx-auto">
 
-          {/* Product header cards */}
-          <div className="grid gap-0 mb-6" style={{ gridTemplateColumns: gridCols }}>
-            <div />
-            {items.map(p => (
-              <div key={p.id} className="px-4 text-center">
-                <div className="relative inline-block mb-3">
-                  <div className="w-24 h-24 rounded-2xl overflow-hidden bg-gray-100 mx-auto shadow-sm">
-                    {p.images?.[0]
-                      ? <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
-                      : <div className="w-full h-full flex items-center justify-center">
-                          <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                    }
-                  </div>
-                  <button onClick={() => toggle(p)}
-                    className="absolute -top-1 -right-1 w-5 h-5 bg-gray-300 hover:bg-gray-400 rounded-full flex items-center justify-center transition-colors">
-                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-                {p.category_name && (
-                  <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">{p.category_name}</div>
-                )}
-                <Link to={`/products/${p.id}`} className="text-sm font-semibold text-dark hover:text-primary transition-colors leading-snug block">
-                  {p.name}
-                </Link>
-              </div>
-            ))}
-          </div>
-
-          {/* Comparison table */}
+          {/* Comparison table（圖片卡片移入同一容器，確保欄位對齊）*/}
           <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 divide-y divide-gray-50">
+
+            {/* Product header cards */}
+            <div className="grid gap-0" style={{ gridTemplateColumns: gridCols }}>
+              <div />
+              {items.map(p => (
+                <div key={p.id} className="px-3 py-5 text-center">
+                  <div className="relative inline-block mb-2">
+                    <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-gray-100 mx-auto shadow-sm">
+                      {p.images?.[0]
+                        ? <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
+                        : <div className="w-full h-full flex items-center justify-center">
+                            <svg className="w-6 h-6 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                      }
+                    </div>
+                    <button onClick={() => toggle(p)}
+                      className="absolute -top-1 -right-1 w-5 h-5 bg-gray-300 hover:bg-gray-400 rounded-full flex items-center justify-center transition-colors">
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  {p.category_name && (
+                    <div className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">{p.category_name}</div>
+                  )}
+                  <Link to={`/products/${p.id}`} className="text-xs sm:text-sm font-semibold text-dark hover:text-primary transition-colors leading-snug block">
+                    {p.name}
+                  </Link>
+                </div>
+              ))}
+            </div>
 
             {/* Features */}
             {featureRows.length > 0 && (
