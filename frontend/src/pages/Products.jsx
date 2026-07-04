@@ -1,64 +1,125 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import ProductCard from '../components/ProductCard'
 import api from '../api/client'
 
+const CAT_ICONS = {
+  '防水塗料':      '🎨',
+  '防水砂漿':      '🧱',
+  '隔熱材料':      '🌡️',
+  '透明塗料':      '🔍',
+  '填縫材料':      '🔧',
+  '黏著劑':        '🔗',
+  '砂漿改性劑':    '⚗️',
+  '灌注材料':      '💧',
+  '自平水泥':      '⬜',
+  '結構補強':      '🏗️',
+  '防水毯/瀝青/底油': '🛡️',
+  'PU/EPOXY':      '🧪',
+}
+
 export default function Products() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const [products, setProducts] = useState([])
+  const [allProducts, setAllProducts] = useState([])
   const [categories, setCategories] = useState([])
-  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState(searchParams.get('search') || '')
+  const sectionRefs = useRef({})
 
   const categoryId = searchParams.get('category_id') || ''
-  const page = Number(searchParams.get('page') || 1)
-  const LIMIT = 12
 
+  // 載入分類
   useEffect(() => {
     api.get('/categories').then(r => setCategories(r.data || [])).catch(() => {})
   }, [])
 
+  // 載入全部產品
   useEffect(() => {
     setLoading(true)
-    const params = new URLSearchParams({ limit: LIMIT, page })
-    if (categoryId) params.set('category_id', categoryId)
+    const params = new URLSearchParams({ limit: 200 })
     if (search) params.set('search', search)
     api.get(`/products?${params}`)
-      .then(r => { setProducts(r.data || []); setTotal(r.total || 0) })
+      .then(r => setAllProducts(r.data || []))
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [categoryId, page, search])
+  }, [search])
+
+  // 選分類
+  const setCategory = (id) => {
+    setSearchParams(id ? { category_id: id } : {})
+    // 滾到對應 section
+    if (id && sectionRefs.current[id]) {
+      sectionRefs.current[id].scrollIntoView({ behavior: 'smooth', block: 'start' })
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
 
   const handleSearch = (e) => {
     e.preventDefault()
-    setSearchParams(prev => {
-      const p = new URLSearchParams(prev)
-      p.set('search', search)
-      p.delete('page')
-      return p
-    })
+    setSearchParams(search ? { search } : {})
   }
 
-  const setCategory = (id) => setSearchParams(id ? { category_id: id } : {})
-  const totalPages = Math.ceil(total / LIMIT)
+  // 過濾＆分組
+  const filtered = categoryId
+    ? allProducts.filter(p => String(p.category_id) === categoryId)
+    : allProducts
+
+  // 依分類分組（無搜尋且無選分類時）
+  const grouped = categories.map(cat => ({
+    ...cat,
+    products: allProducts.filter(p => p.category_id === cat.id)
+  })).filter(g => g.products.length > 0)
+
+  const showGrouped = !categoryId && !search
 
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
 
       {/* Header */}
-      <div className="bg-gray-50 pt-8 pb-8 md:pt-14 md:pb-10 px-6 border-b border-gray-200">
+      <div className="bg-gray-50 pt-8 pb-6 md:pt-14 md:pb-10 px-6 border-b border-gray-200">
         <div className="max-w-5xl mx-auto">
           <div className="section-eyebrow">ARCHWAY 松上防水</div>
           <h1 className="text-4xl md:text-5xl font-bold text-dark tracking-tight mb-2">產品目錄</h1>
-          <p className="text-base md:text-lg text-gray-500">完整防水材料系列，滿足各種工程需求</p>
+          <p className="text-base text-gray-500">完整防水材料系列，滿足各種工程需求</p>
         </div>
       </div>
 
-      <div className="flex-1 py-10 bg-white px-6">
+      {/* ── 分類橫向捲軸（Apple 風格）── */}
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
+        <div className="overflow-x-auto scrollbar-hide">
+          <div className="flex gap-1 px-4 py-3 w-max">
+            {/* 全部 */}
+            <button
+              onClick={() => setCategory('')}
+              className={`flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-colors min-w-[64px] ${
+                !categoryId ? 'bg-dark text-white' : 'text-gray-500 hover:bg-gray-50'
+              }`}
+            >
+              <span className="text-2xl">🏠</span>
+              <span className="text-[11px] font-medium whitespace-nowrap">全部</span>
+            </button>
+
+            {categories.map(c => (
+              <button
+                key={c.id}
+                onClick={() => setCategory(String(c.id))}
+                className={`flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-colors min-w-[64px] ${
+                  categoryId === String(c.id) ? 'bg-dark text-white' : 'text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                <span className="text-2xl">{CAT_ICONS[c.name] || '📦'}</span>
+                <span className="text-[11px] font-medium whitespace-nowrap">{c.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 py-8 bg-white px-4">
         <div className="max-w-5xl mx-auto">
 
           {/* Search */}
@@ -75,60 +136,47 @@ export default function Products() {
             </button>
           </form>
 
-          {/* Category Tabs */}
-          <div className="flex flex-wrap gap-2 mb-8">
-            <button
-              onClick={() => setCategory('')}
-              className={`px-4 py-1.5 text-sm rounded-full border transition-colors ${!categoryId ? 'bg-dark text-white border-dark' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'}`}
-            >
-              全部
-            </button>
-            {categories.map(c => (
-              <button
-                key={c.id}
-                onClick={() => setCategory(String(c.id))}
-                className={`px-4 py-1.5 text-sm rounded-full border transition-colors ${categoryId === String(c.id) ? 'bg-dark text-white border-dark' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'}`}
-              >
-                {c.name}
-              </button>
-            ))}
-          </div>
-
-          <p className="text-xs text-gray-400 mb-6">共 {total} 項產品</p>
-
-          {/* Grid */}
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="bg-gray-100 animate-pulse rounded-2xl aspect-video"></div>
+                <div key={i} className="bg-gray-100 animate-pulse rounded-2xl aspect-square"></div>
               ))}
             </div>
-          ) : products.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {products.map(p => <ProductCard key={p.id} product={p} />)}
+          ) : showGrouped ? (
+            /* ── 全部：依分類分段顯示 ── */
+            <div className="space-y-12">
+              {grouped.map(cat => (
+                <div key={cat.id} ref={el => sectionRefs.current[cat.id] = el}>
+                  <div className="flex items-center gap-2 mb-5">
+                    <span className="text-2xl">{CAT_ICONS[cat.name] || '📦'}</span>
+                    <h2 className="text-xl font-bold text-dark">{cat.name}</h2>
+                    <span className="text-xs text-gray-400 ml-1">{cat.products.length} 項</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {cat.products.map(p => <ProductCard key={p.id} product={p} />)}
+                  </div>
+                </div>
+              ))}
+              {grouped.length === 0 && (
+                <div className="text-center py-24 text-gray-300">
+                  <p className="text-gray-400">目前尚無產品</p>
+                </div>
+              )}
             </div>
           ) : (
-            <div className="text-center py-24 text-gray-300">
-              <svg className="w-16 h-16 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-              </svg>
-              <p className="text-gray-400">找不到相符的產品</p>
-            </div>
-          )}
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-center gap-2 mt-12">
-              {[...Array(totalPages)].map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSearchParams(prev => { const p = new URLSearchParams(prev); p.set('page', i + 1); return p })}
-                  className={`w-9 h-9 text-sm rounded-full border transition-colors ${page === i + 1 ? 'bg-dark text-white border-dark' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'}`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
+            /* ── 篩選結果 ── */
+            <>
+              <p className="text-xs text-gray-400 mb-5">共 {filtered.length} 項產品</p>
+              {filtered.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {filtered.map(p => <ProductCard key={p.id} product={p} />)}
+                </div>
+              ) : (
+                <div className="text-center py-24 text-gray-300">
+                  <p className="text-gray-400">找不到相符的產品</p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
