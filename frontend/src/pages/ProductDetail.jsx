@@ -198,6 +198,25 @@ export default function ProductDetail() {
             </div>
           )}
 
+          {/* YouTube 影片 */}
+          {product.youtube_url && (() => {
+            const match = product.youtube_url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/)
+            const vid = match?.[1]
+            return vid ? (
+              <div className="mt-16 pt-10 border-t border-gray-100">
+                <h2 className="text-xl font-semibold text-dark mb-5 tracking-tight">產品影片</h2>
+                <div className="rounded-2xl overflow-hidden aspect-video max-w-2xl">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${vid}`}
+                    className="w-full h-full"
+                    allowFullScreen
+                    title={product.name}
+                  />
+                </div>
+              </div>
+            ) : null
+          })()}
+
           <div className="mt-10 pt-6 border-t border-gray-100">
             <Link to="/products" className="text-sm text-primary hover:text-primary-dark transition-colors">
               ‹ 返回產品目錄

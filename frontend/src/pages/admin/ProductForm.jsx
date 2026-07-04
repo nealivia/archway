@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 const EMPTY = {
   name: '', category_id: '', short_desc: '', description: '',
   features: [], applications: [], shopee_url: '',
-  images: [], datasheet_url: '', installation_url: '', is_active: true, is_featured: false, price: '', prices: [], sort_order: 0
+  images: [], datasheet_url: '', installation_url: '', youtube_url: '', is_active: true, is_featured: false, price: '', prices: [], sort_order: 0
 }
 
 const FEATURE_SUGGESTIONS = [
@@ -65,6 +65,7 @@ export default function ProductForm() {
           images: p.images || [],
           datasheet_url: p.datasheet_url || '',
           installation_url: p.installation_url || '',
+          youtube_url: p.youtube_url || '',
           is_active: !!p.is_active,
           is_featured: !!p.is_featured,
           price: p.price || '',
@@ -266,6 +267,27 @@ export default function ProductForm() {
               placeholder="https://shopee.tw/..."
               className="w-full border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:border-primary rounded-sm" />
             <p className="text-xs text-gray-400 mt-1.5">留空則不顯示蝦皮購買按鈕</p>
+          </div>
+        </div>
+
+        {/* YouTube */}
+        <div className="bg-white rounded shadow-sm p-6">
+          <h2 className="font-bold text-dark mb-5 pb-3 border-b border-gray-100">YouTube 影片</h2>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">影片網址</label>
+            <input value={form.youtube_url} onChange={e => set('youtube_url', e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=... 或 https://youtu.be/..."
+              className="w-full border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:border-primary rounded-sm" />
+            <p className="text-xs text-gray-400 mt-1.5">留空則不顯示影片區塊。支援 youtube.com/watch 及 youtu.be 短網址。</p>
+            {form.youtube_url && (() => {
+              const match = form.youtube_url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/)
+              const vid = match?.[1]
+              return vid ? (
+                <div className="mt-3 rounded overflow-hidden aspect-video max-w-sm">
+                  <iframe src={`https://www.youtube.com/embed/${vid}`} className="w-full h-full" allowFullScreen title="預覽" />
+                </div>
+              ) : <p className="text-xs text-red-400 mt-1.5">無法解析網址，請確認格式正確</p>
+            })()}
           </div>
         </div>
 
