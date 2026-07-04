@@ -153,7 +153,16 @@ export default function ProductsAdmin() {
                   </td>
                   <td className="px-4 py-4 text-gray-500 hidden md:table-cell">{p.category_name || '-'}</td>
                   <td className="px-4 py-4 hidden lg:table-cell">
-                    {p.price ? (
+                    {p.prices?.length > 0 ? (
+                      <div className="space-y-0.5">
+                        {p.prices.map((tier, i) => (
+                          <div key={i} className="text-xs">
+                            {tier.size && <span className="text-gray-400 mr-1">{tier.size}</span>}
+                            <span className="text-primary font-bold">NT${Number(tier.price).toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : p.price ? (
                       <span className="text-primary font-bold">NT${Number(p.price).toLocaleString()}</span>
                     ) : (
                       <span className="text-gray-400">洽詢</span>

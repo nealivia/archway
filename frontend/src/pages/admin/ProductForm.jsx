@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 const EMPTY = {
   name: '', category_id: '', short_desc: '', description: '',
   features: [], applications: [], shopee_url: '',
-  images: [], datasheet_url: '', installation_url: '', is_active: true, is_featured: false, price: '', sort_order: 0
+  images: [], datasheet_url: '', installation_url: '', is_active: true, is_featured: false, price: '', prices: [], sort_order: 0
 }
 
 const FEATURE_SUGGESTIONS = [
@@ -68,6 +68,7 @@ export default function ProductForm() {
           is_active: !!p.is_active,
           is_featured: !!p.is_featured,
           price: p.price || '',
+          prices: p.prices || [],
           sort_order: p.sort_order || 0
         })
       }).catch(() => toast.error('載入商品失敗'))
@@ -99,6 +100,10 @@ export default function ProductForm() {
     setCustomAppInput('')
   }
   const removeApp = (item) => set('applications', form.applications.filter(a => a !== item))
+
+  const addPriceTier = () => set('prices', [...form.prices, { size: '', price: '' }])
+  const updatePriceTier = (i, key, val) => set('prices', form.prices.map((t, idx) => idx === i ? { ...t, [key]: val } : t))
+  const removePriceTier = (i) => set('prices', form.prices.filter((_, idx) => idx !== i))
 
   const handleImageUpload = async (e) => {
     const files = e.target.files
@@ -203,14 +208,36 @@ export default function ProductForm() {
                 {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">售價（NT$）</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">NT$</span>
-                <input type="number" value={form.price} onChange={e => set('price', e.target.value)} min="0" placeholder="0 = 洽詢"
-                  className="w-full border border-gray-200 pl-12 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary rounded-sm" />
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">售價規格</label>
+              <p className="text-xs text-gray-400 mb-3">可依包裝容量設定多組售價，例：4kg / NT$1,000。留空則商品頁顯示「洽詢」。</p>
+              <div className="space-y-2 mb-3">
+                {form.prices.map((tier, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <input
+                      value={tier.size}
+                      onChange={e => updatePriceTier(i, 'size', e.target.value)}
+                      placeholder="規格（例：4kg）"
+                      className="w-32 border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-primary rounded-sm"
+                    />
+                    <span className="text-gray-400 text-sm">NT$</span>
+                    <input
+                      type="number"
+                      value={tier.price}
+                      onChange={e => updatePriceTier(i, 'price', e.target.value)}
+                      placeholder="0"
+                      min="0"
+                      className="w-32 border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-primary rounded-sm"
+                    />
+                    <button type="button" onClick={() => removePriceTier(i)}
+                      className="text-gray-300 hover:text-red-500 transition-colors text-lg leading-none">✕</button>
+                  </div>
+                ))}
               </div>
-              <p className="text-xs text-gray-400 mt-1">留空或填 0 則顯示「洽詢」</p>
+              <button type="button" onClick={addPriceTier}
+                className="text-sm text-gray-500 hover:text-dark border border-dashed border-gray-300 hover:border-gray-400 px-4 py-2 rounded-sm transition-colors">
+                ＋ 新增規格
+              </button>
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">簡短描述</label>

@@ -90,7 +90,18 @@ export default function ProductDetail() {
                 <p className="text-base text-gray-500 leading-relaxed mb-3">{product.short_desc}</p>
               )}
               <div className="mb-6">
-                {product.price ? (
+                {product.prices?.length > 0 ? (
+                  <div className="space-y-2">
+                    {product.prices.map((tier, i) => (
+                      <div key={i} className="flex items-baseline gap-3">
+                        {tier.size && (
+                          <span className="text-sm text-gray-400 bg-gray-100 px-2 py-0.5 rounded">{tier.size}</span>
+                        )}
+                        <span className="text-2xl font-bold text-dark">NT$ {Number(tier.price).toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : product.price ? (
                   <span className="text-2xl font-bold text-dark">NT$ {Number(product.price).toLocaleString()}</span>
                 ) : (
                   <span className="text-base text-gray-400">價格洽詢</span>

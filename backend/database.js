@@ -116,6 +116,7 @@ function initDatabase() {
   try { db.exec("ALTER TABLE products ADD COLUMN installation_url TEXT DEFAULT ''"); } catch (e) { /* 已存在 */ }
   try { db.exec("ALTER TABLE products ADD COLUMN is_featured INTEGER DEFAULT 0"); } catch (e) { /* 已存在 */ }
   try { db.exec("ALTER TABLE products ADD COLUMN price INTEGER DEFAULT 0"); } catch (e) { /* 已存在 */ }
+  try { db.exec("ALTER TABLE products ADD COLUMN prices TEXT DEFAULT '[]'"); } catch (e) { /* 已存在 */ }
 
   // 初始化預設設定
   const maintenanceSetting = db.prepare("SELECT value FROM settings WHERE key = 'maintenance_mode'").get();
