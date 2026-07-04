@@ -65,17 +65,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Stats */}
-      <div className="bg-white border-y border-gray-200">
-        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-gray-200">
-          {stats.map(s => (
-            <div key={s.label} className="py-7 text-center px-4">
-              <div className="text-3xl font-bold text-dark tracking-tight">{s.num}</div>
-              <div className="text-xs text-gray-500 mt-1">{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* Features */}
       <section className="py-12 md:py-20 bg-white px-6">
