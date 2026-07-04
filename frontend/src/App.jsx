@@ -1,10 +1,16 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './context/AuthContext'
 import { CompareProvider } from './context/CompareContext'
 import { useState, useEffect } from 'react'
 import api from './api/client'
 import CompareBar from './components/CompareBar'
+
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => { window.scrollTo(0, 0) }, [pathname])
+  return null
+}
 
 // 前台頁面
 import Home from './pages/Home'
@@ -76,6 +82,7 @@ export default function App() {
   return (
     <AuthProvider>
       <CompareProvider>
+      <ScrollToTop />
       <Toaster position="top-right" />
       <CompareBar />
       <Routes>
