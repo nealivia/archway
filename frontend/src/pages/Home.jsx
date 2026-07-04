@@ -44,7 +44,10 @@ export default function Home() {
 
       {/* Hero */}
       <section className="bg-gray-50 pt-12 pb-10 md:pt-20 md:pb-16 text-center px-6">
-        <img src="/archway_logo.png" alt="ARCHWAY 松上防水" className="h-10 md:h-12 w-auto mx-auto mb-2 opacity-70" />
+        <div className="flex items-center justify-center gap-4 mb-2">
+          <img src="/archway_logo.png" alt="ARCHWAY 松上防水" className="h-20 md:h-24 w-auto opacity-70" />
+          <span className="text-2xl md:text-3xl font-semibold text-gray-500 tracking-widest">松上防水</span>
+        </div>
         <h1 className="text-5xl md:text-7xl font-bold text-dark tracking-tight leading-none mb-4 mt-2">
           滴水不漏
         </h1>
