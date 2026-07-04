@@ -83,7 +83,8 @@ router.get('/:id', (req, res) => {
       ...product,
       features: JSON.parse(product.features || '[]'),
       applications: JSON.parse(product.applications || '[]'),
-      images: JSON.parse(product.images || '[]')
+      images: JSON.parse(product.images || '[]'),
+      prices: JSON.parse(product.prices || '[]')
     }
   });
 });

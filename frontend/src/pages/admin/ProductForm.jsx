@@ -68,7 +68,7 @@ export default function ProductForm() {
           is_active: !!p.is_active,
           is_featured: !!p.is_featured,
           price: p.price || '',
-          prices: p.prices || [],
+          prices: Array.isArray(p.prices) ? p.prices : [],
           sort_order: p.sort_order || 0
         })
       }).catch(() => toast.error('載入商品失敗'))
