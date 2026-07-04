@@ -46,7 +46,7 @@ export default function Home() {
       <section className="bg-gray-50 pt-16 pb-12 md:pt-28 md:pb-20 text-center px-6">
         <div className="flex flex-col items-center mb-4">
           <img src="/archway_logo.png" alt="ARCHWAY 松上防水" className="h-12 md:h-14 w-auto opacity-60 mb-3" />
-          <span className="text-4xl font-medium text-dark tracking-[0.12em]">松上ARCHWAY</span>
+          <span className="text-[2.5rem] font-bold text-dark tracking-[0.12em]" style={{display:'inline-block', transform:'scaleX(0.9)'}}>松上ARCHWAY</span>
         </div>
         <h1 className="text-4xl md:text-6xl font-bold text-dark tracking-tight leading-snug mb-5">
           守護建築，從防水開始
