@@ -95,7 +95,7 @@ export default function ProductDetail() {
                     {product.prices.map((tier, i) => (
                       <div key={i} className="flex items-baseline gap-3">
                         {tier.size && (
-                          <span className="text-sm text-gray-400 bg-gray-100 px-2 py-0.5 rounded">{tier.size}</span>
+                          <span className="text-sm text-gray-400 bg-gray-100 px-2 py-0.5 rounded text-center flex-shrink-0" style={{minWidth:'3.5rem'}}>{tier.size}</span>
                         )}
                         <span className="text-2xl font-bold text-dark">NT$ {Number(tier.price).toLocaleString()}</span>
                       </div>
