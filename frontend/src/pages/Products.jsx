@@ -150,7 +150,7 @@ export default function Products() {
       </div>
 
       {/* ── 分類捲軸（含左右箭頭）── */}
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
+      <div className="bg-white border-b border-gray-100 sticky top-12 z-40">
         <HScrollRow>
           <div className="flex gap-2 px-4 py-4 w-max">
             <button
@@ -204,7 +204,7 @@ export default function Products() {
           ) : showGrouped ? (
             <div className="space-y-10">
               {grouped.map(cat => (
-                <div key={cat.id} ref={el => sectionRefs.current[cat.id] = el} style={{ scrollMarginTop: '160px' }}>
+                <div key={cat.id} ref={el => sectionRefs.current[cat.id] = el} style={{ scrollMarginTop: '148px' }}>
                   <div className="flex items-center justify-between mb-4 px-1">
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">{CAT_ICONS[cat.name] || '📦'}</span>
