@@ -44,11 +44,10 @@ export default function Home() {
 
       {/* Hero */}
       <section className="bg-gray-50 pt-12 pb-10 md:pt-20 md:pb-16 text-center px-6">
-        <div className="section-eyebrow">台灣專業防水建材廠商　成立於 1991 年</div>
+        <p className="text-lg md:text-xl text-gray-500 mb-2 font-normal">松上防水　ARCHWAY</p>
         <h1 className="text-5xl md:text-7xl font-bold text-dark tracking-tight leading-none mb-4 mt-2">
           滴水不漏。
         </h1>
-        <p className="text-lg md:text-xl text-gray-500 mb-2 font-normal">松上防水　ARCHWAY</p>
         <p className="text-sm md:text-base text-gray-400 mb-8 max-w-lg mx-auto leading-relaxed">
           30 年專業經驗，為您的建築提供最完整的防水解決方案
         </p>
