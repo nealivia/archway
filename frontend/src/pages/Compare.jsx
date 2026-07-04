@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
@@ -70,6 +71,13 @@ function FeatureCell({ product, row }) {
 
 export default function Compare() {
   const { items, toggle, clear } = useCompare()
+  const [labelW, setLabelW] = useState(window.innerWidth < 640 ? '56px' : '120px')
+
+  useEffect(() => {
+    const handler = () => setLabelW(window.innerWidth < 640 ? '56px' : '120px')
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
 
   if (items.length === 0) {
     return (
@@ -91,7 +99,7 @@ export default function Compare() {
   const cols = items.length
   const featureRows = buildFeatureRows(items)
   const allApplications = [...new Set(items.flatMap(p => p.applications || []))]
-  const gridCols = `140px repeat(${cols}, 1fr)`
+  const gridCols = `${labelW} repeat(${cols}, 1fr)`
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -150,7 +158,7 @@ export default function Compare() {
             {/* Section label helper */}
             {/* 簡介 */}
             <div className="grid" style={{ gridTemplateColumns: gridCols }}>
-              <div className="py-5 px-5 text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-start pt-6 bg-gray-50/60">簡介</div>
+              <div className="py-5 px-2 sm:px-5 text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-start pt-6 bg-gray-50/60 leading-snug break-words">簡介</div>
               {items.map(p => (
                 <div key={p.id} className="py-5 px-5 border-l border-gray-100 text-sm text-gray-600 leading-relaxed">
                   {p.short_desc || <span className="text-gray-300">—</span>}
@@ -161,7 +169,7 @@ export default function Compare() {
             {/* Features */}
             {featureRows.length > 0 && (
               <div className="grid" style={{ gridTemplateColumns: gridCols }}>
-                <div className="py-5 px-5 text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-start pt-6 bg-gray-50/60">產品特點</div>
+                <div className="py-5 px-2 sm:px-5 text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-start pt-6 bg-gray-50/60 leading-snug break-words">產品特點</div>
                 {items.map(p => (
                   <div key={p.id} className="py-5 px-5 border-l border-gray-100 space-y-3">
                     {featureRows.map((row, i) => (
@@ -175,7 +183,7 @@ export default function Compare() {
             {/* Applications */}
             {allApplications.length > 0 && (
               <div className="grid" style={{ gridTemplateColumns: gridCols }}>
-                <div className="py-5 px-5 text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-start pt-6 bg-gray-50/60">適用場景</div>
+                <div className="py-5 px-2 sm:px-5 text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-start pt-6 bg-gray-50/60 leading-snug break-words">適用場景</div>
                 {items.map(p => (
                   <div key={p.id} className="py-5 px-5 border-l border-gray-100">
                     <div className="flex flex-wrap gap-1.5">
@@ -196,7 +204,7 @@ export default function Compare() {
             {/* Downloads */}
             {items.some(p => p.datasheet_url || p.installation_url) && (
               <div className="grid" style={{ gridTemplateColumns: gridCols }}>
-                <div className="py-5 px-5 text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-start pt-6 bg-gray-50/60">文件下載</div>
+                <div className="py-5 px-2 sm:px-5 text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-start pt-6 bg-gray-50/60 leading-snug break-words">文件下載</div>
                 {items.map(p => (
                   <div key={p.id} className="py-5 px-5 border-l border-gray-100 space-y-2">
                     {p.datasheet_url && (
@@ -223,7 +231,7 @@ export default function Compare() {
 
             {/* Purchase */}
             <div className="grid" style={{ gridTemplateColumns: gridCols }}>
-              <div className="py-5 px-5 text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-start pt-6 bg-gray-50/60">購買</div>
+              <div className="py-5 px-2 sm:px-5 text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-start pt-6 bg-gray-50/60 leading-snug break-words">購買</div>
               {items.map(p => (
                 <div key={p.id} className="py-5 px-5 border-l border-gray-100 space-y-2.5">
                   <Link to={`/products/${p.id}`} className="block text-xs font-medium text-primary hover:text-primary-dark transition-colors">
@@ -235,25 +243,4 @@ export default function Compare() {
                       蝦皮購買 ›
                     </a>
                   )}
-                  <Link to="/about#contact" className="block text-xs text-gray-400 hover:text-dark transition-colors">
-                    立即洽購 ›
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {items.length < 3 && (
-            <div className="mt-8 text-center">
-              <Link to="/products" className="text-sm text-primary hover:text-primary-dark transition-colors">
-                ＋ 再加入一件商品比較
-              </Link>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <Footer />
-    </div>
-  )
-}
+                  <Link to="/about#contact" className="block text-xs text-gray-400 hover:text-dark t
