@@ -10,19 +10,6 @@ export default function ProductCard({ product, variant }) {
   if (variant === 'overlay') {
     return (
       <div className="group relative rounded-2xl overflow-hidden aspect-[4/3] bg-gray-100">
-        <button
-          onClick={e => { e.preventDefault(); toggle(product) }}
-          title={selected ? '移除比較' : '加入比較'}
-          className={`absolute top-3 right-3 z-10 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-200 shadow-sm
-            ${selected
-              ? 'bg-primary border-primary text-white'
-              : 'bg-white/80 border-gray-200 text-gray-400 opacity-0 group-hover:opacity-100'
-            }`}>
-          {selected
-            ? <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-            : <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
-          }
-        </button>
         <Link to={`/products/${product.id}`} className="block w-full h-full">
           {mainImage ? (
             <img src={mainImage} alt={product.name}
