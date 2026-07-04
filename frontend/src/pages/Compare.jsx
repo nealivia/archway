@@ -243,4 +243,25 @@ export default function Compare() {
                       蝦皮購買 ›
                     </a>
                   )}
-                  <Link to="/about#contact" className="block text-xs text-gray-400 hover:text-dark t
+                  <Link to="/about#contact" className="block text-xs text-gray-400 hover:text-dark transition-colors">
+                    立即洽購 ›
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {items.length < 3 && (
+            <div className="mt-8 text-center">
+              <Link to="/products" className="text-sm text-primary hover:text-primary-dark transition-colors">
+                ＋ 再加入一件商品比較
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Footer />
+    </div>
+  )
+}
