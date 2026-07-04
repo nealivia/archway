@@ -49,30 +49,38 @@ function HScrollRow({ children, className = '' }) {
 
   return (
     <div className={`relative ${className}`}>
+      {/* 左側漸層 + 箭頭 */}
       {canLeft && (
-        <button
-          onClick={() => scroll(-1)}
-          aria-label="向左滑動"
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-dark text-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-700 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
+        <>
+          <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-white to-transparent pointer-events-none z-10" />
+          <button
+            onClick={() => scroll(-1)}
+            aria-label="向左滑動"
+            className="absolute left-1 top-1/2 -translate-y-1/2 z-20 w-9 h-9 bg-dark text-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-700 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        </>
       )}
       <div ref={ref} className="overflow-x-auto scrollbar-hide">
         {children}
       </div>
+      {/* 右側漸層 + 箭頭 */}
       {canRight && (
-        <button
-          onClick={() => scroll(1)}
-          aria-label="向右滑動"
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-dark text-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-700 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
+        <>
+          <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white to-transparent pointer-events-none z-10" />
+          <button
+            onClick={() => scroll(1)}
+            aria-label="向右滑動"
+            className="absolute right-1 top-1/2 -translate-y-1/2 z-20 w-9 h-9 bg-dark text-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-700 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </>
       )}
     </div>
   )
