@@ -155,17 +155,6 @@ export default function Compare() {
           {/* Comparison table */}
           <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 divide-y divide-gray-50">
 
-            {/* Section label helper */}
-            {/* 簡介 */}
-            <div className="grid" style={{ gridTemplateColumns: gridCols }}>
-              <div className="py-5 px-2 sm:px-5 text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-start pt-6 bg-gray-50/60 leading-snug break-words">簡介</div>
-              {items.map(p => (
-                <div key={p.id} className="py-5 px-5 border-l border-gray-100 text-sm text-gray-600 leading-relaxed">
-                  {p.short_desc || <span className="text-gray-300">—</span>}
-                </div>
-              ))}
-            </div>
-
             {/* Features */}
             {featureRows.length > 0 && (
               <div className="grid" style={{ gridTemplateColumns: gridCols }}>
