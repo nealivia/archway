@@ -13,7 +13,7 @@ export default function About() {
 
   useEffect(() => {
     api.get('/stores')
-      .then(r => setStores(r.data?.data || []))
+      .then(r => setStores(r.data || []))
       .catch(() => {})
   }, [])
 

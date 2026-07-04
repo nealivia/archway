@@ -14,7 +14,7 @@ export default function StoresAdmin() {
   const fetchStores = () => {
     setLoading(true)
     api.get('/stores/all')
-      .then(r => setStores(r.data?.data || []))
+      .then(r => setStores(r.data || []))
       .catch(() => toast.error('載入失敗'))
       .finally(() => setLoading(false))
   }
