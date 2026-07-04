@@ -100,6 +100,7 @@ export default function App() {
           <Route path="products/:id/edit" element={<ProductForm />} />
           <Route path="categories" element={<CategoriesAdmin />} />
           <Route path="stores" element={<StoresAdmin />} />
+          <Route path="settings" element={<AccountSettings />} />
           <Route path="users" element={<UsersAdmin />} />
         </Route>
       </Routes>
