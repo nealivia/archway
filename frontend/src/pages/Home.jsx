@@ -87,6 +87,7 @@ export default function Home() {
       <section className="py-12 md:py-20 bg-white px-6">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-5xl md:text-6xl font-black text-dark text-center tracking-tight mb-3">選擇我們</h2>
+          <p className="section-title text-center mb-3">品質，您可以放心</p>
           <p className="text-base md:text-lg text-gray-500 text-center mb-10 md:mb-14">通過多項國際認證，專業品質保證</p>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-10">
             {features.map(f => (
