@@ -53,18 +53,22 @@ export default function Home() {
       <Navbar />
 
       {/* Hero */}
-      <section className="bg-gray-50 pt-16 pb-12 md:pt-28 md:pb-20 text-center px-6">
-        <div className="flex flex-col items-center mb-3">
+      <section className="relative overflow-hidden bg-gray-50 pt-20 pb-16 md:pt-36 md:pb-28 text-center px-6">
+        {/* 幾何裝飾 */}
+        <div className="pointer-events-none absolute -top-20 -right-20 w-72 h-72 rounded-full border border-gray-200" />
+        <div className="pointer-events-none absolute -top-10 -right-10 w-44 h-44 rounded-full border border-gray-200" />
+        <div className="pointer-events-none absolute -bottom-16 -left-16 w-56 h-56 rounded-full border border-gray-200" />
+        <div className="relative flex flex-col items-center mb-3">
           <img src="/archway_logo.png" alt="ARCHWAY 松上防水" className="h-9 md:h-14 w-auto mb-2" />
           <span className="text-2xl md:text-[2.5rem] font-bold text-dark tracking-[0.12em]" style={{display:'inline-block', transform:'scaleX(0.95)'}}>松上ARCHWAY</span>
         </div>
-        <h1 className="text-4xl md:text-6xl font-bold text-dark tracking-tight leading-snug mb-5">
+        <h1 className="relative text-4xl md:text-6xl font-bold text-dark tracking-tight leading-snug mb-5">
           守護建築，從防水開始
         </h1>
-        <p className="text-sm md:text-base text-gray-400 mb-10 max-w-md mx-auto leading-relaxed">
+        <p className="relative text-sm md:text-base text-gray-400 mb-10 max-w-md mx-auto leading-relaxed">
           30 年專業經驗，為您的建築提供最完整的防水解決方案
         </p>
-        <div className="flex items-center justify-center gap-2 flex-wrap">
+        <div className="relative flex items-center justify-center gap-2 flex-wrap">
           <Link to="/products" className="text-base text-primary hover:text-primary-dark transition-colors font-normal">
             瀏覽產品目錄 ›
           </Link>
@@ -75,6 +79,17 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Stats 統計橫幅 */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="max-w-5xl mx-auto grid grid-cols-4 divide-x divide-gray-100">
+          {stats.map(s => (
+            <div key={s.label} className="py-6 md:py-8 text-center">
+              <div className="text-2xl md:text-3xl font-bold text-dark mb-1">{s.num}</div>
+              <div className="text-xs md:text-sm text-gray-400">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Products */}
       <section className="py-16 md:py-28 bg-gray-50 px-6">
