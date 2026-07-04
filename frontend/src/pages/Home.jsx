@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import ProductCard from '../components/ProductCard'
@@ -21,6 +22,11 @@ const stats = [
 
 export default function Home() {
   const [products, setProducts] = useState([])
+  const [stores, setStores] = useState([])
+
+  useEffect(() => {
+    api.get('/stores').then(r => setStores(r.data || [])).catch(() => {})
+  }, [])
 
   useEffect(() => {
     api.get('/products/featured')
@@ -111,6 +117,45 @@ export default function Home() {
           )}
         </div>
       </section>
+
+      {/* 門市據點 */}
+      {stores.length > 0 && (
+        <section className="py-12 md:py-20 bg-white px-6">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-10">
+              <div className="section-eyebrow">門市據點</div>
+              <h2 className="text-3xl font-bold text-dark tracking-tight mb-2">歡迎親臨洽詢</h2>
+              <p className="text-gray-500 text-sm">大台北地區全覆蓋</p>
+            </div>
+            <div className="grid md:grid-cols-3 gap-4">
+              {stores.map(store => (
+                <div key={store.id} className="bg-gray-50 rounded-2xl p-6">
+                  <h3 className="font-semibold text-dark text-base mb-4">{store.name}</h3>
+                  <div className="space-y-3">
+                    {store.address && (
+                      <a href={`https://maps.google.com/?q=${encodeURIComponent(store.address)}`} target="_blank" rel="noopener noreferrer"
+                        className="flex items-start gap-2 text-sm text-gray-500 hover:text-dark transition-colors">
+                        <span className="flex-shrink-0 mt-0.5">📍</span>
+                        <span>{store.address}</span>
+                      </a>
+                    )}
+                    {store.phone && (
+                      <a href={`tel:${store.phone.replace(/\D/g, '')}`} className="flex items-center gap-2 text-sm text-gray-500 hover:text-dark transition-colors">
+                        <span>📞</span><span>{store.phone}</span>
+                      </a>
+                    )}
+                    {store.hours && (
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <span>🕐</span><span>{store.hours}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="py-16 md:py-24 bg-dark text-center px-6">
