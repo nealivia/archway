@@ -43,15 +43,15 @@ export default function Home() {
       <Navbar />
 
       {/* Hero */}
-      <section className="bg-gray-50 pt-12 pb-10 md:pt-20 md:pb-16 text-center px-6">
-        <div className="flex items-center justify-center gap-4 mb-2">
-          <img src="/archway_logo.png" alt="ARCHWAY 松上防水" className="h-20 md:h-24 w-auto opacity-70" />
-          <span className="text-2xl md:text-3xl font-semibold text-gray-500 tracking-widest">松上防水</span>
+      <section className="bg-gray-50 pt-16 pb-12 md:pt-28 md:pb-20 text-center px-6">
+        <div className="flex flex-col items-center mb-8">
+          <img src="/archway_logo.png" alt="ARCHWAY 松上防水" className="h-12 md:h-14 w-auto opacity-60 mb-3" />
+          <span className="text-xs font-medium text-gray-400 tracking-[0.3em]">松上防水　ARCHWAY</span>
         </div>
-        <h1 className="text-5xl md:text-7xl font-bold text-dark tracking-tight leading-none mb-4 mt-2">
+        <h1 className="text-4xl md:text-6xl font-bold text-dark tracking-tight leading-snug mb-5">
           守護建築，從防水開始
         </h1>
-        <p className="text-sm md:text-base text-gray-400 mb-8 max-w-lg mx-auto leading-relaxed">
+        <p className="text-sm md:text-base text-gray-400 mb-10 max-w-md mx-auto leading-relaxed">
           30 年專業經驗，為您的建築提供最完整的防水解決方案
         </p>
         <div className="flex items-center justify-center gap-2 flex-wrap">
