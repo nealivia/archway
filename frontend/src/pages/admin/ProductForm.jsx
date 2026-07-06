@@ -48,7 +48,7 @@ export default function ProductForm() {
   const [customAppInput, setCustomAppInput] = useState('')
   const [pdfUploading, setPdfUploading] = useState(false)
   const [installationPdfUploading, setInstallationPdfUploading] = useState(false)
-  const [colorInput, setColorInput] = useState({ name: '', hex: '#ffffff' })
+  const [colorInput, setColorInput] = useState('')
 
   useEffect(() => {
     api.get('/categories').then(r => setCategories(r.data || [])).catch(() => {})
@@ -108,10 +108,37 @@ export default function ProductForm() {
   const updatePriceTier = (i, key, val) => set('prices', form.prices.map((t, idx) => idx === i ? { ...t, [key]: val } : t))
   const removePriceTier = (i) => set('prices', form.prices.filter((_, idx) => idx !== i))
 
+  const detectColorHex = (name) => {
+    const n = name.toLowerCase()
+    if (/白/.test(n) && /米|乳|象牙/.test(n)) return '#FFFDE7'
+    if (/象牙/.test(n)) return '#FFFFF0'
+    if (/米|乳白/.test(n)) return '#FAF7F0'
+    if (/白/.test(n)) return '#F5F5F5'
+    if (/淺灰|淡灰|亮灰/.test(n)) return '#D1D5DB'
+    if (/深灰|炭灰|碳灰|暗灰/.test(n)) return '#4B5563'
+    if (/水泥|混凝土/.test(n)) return '#9CA3AF'
+    if (/灰/.test(n)) return '#9CA3AF'
+    if (/黑/.test(n)) return '#1F2937'
+    if (/磚紅|土紅|暗紅/.test(n)) return '#B91C1C'
+    if (/紅|朱/.test(n)) return '#DC2626'
+    if (/橘|橙/.test(n)) return '#F97316'
+    if (/黃/.test(n)) return '#EAB308'
+    if (/深綠|墨綠/.test(n)) return '#166534'
+    if (/綠|翠/.test(n)) return '#22C55E'
+    if (/深藍|海軍藍|靛/.test(n)) return '#1D4ED8'
+    if (/藍|青/.test(n)) return '#3B82F6'
+    if (/紫/.test(n)) return '#A855F7'
+    if (/粉/.test(n)) return '#F9A8D4'
+    if (/棕|咖啡|茶/.test(n)) return '#92400E'
+    if (/銀/.test(n)) return '#C0C0C0'
+    if (/金/.test(n)) return '#D4AF37'
+    if (/透明/.test(n)) return '#E5E7EB'
+    return '#9CA3AF'
+  }
   const addColor = () => {
-    if (!colorInput.name.trim()) return
-    set('colors', [...form.colors, { name: colorInput.name.trim(), hex: colorInput.hex }])
-    setColorInput({ name: '', hex: '#ffffff' })
+    if (!colorInput.trim()) return
+    set('colors', [...form.colors, { name: colorInput.trim(), hex: detectColorHex(colorInput) }])
+    setColorInput('')
   }
   const removeColor = (i) => set('colors', form.colors.filter((_, idx) => idx !== i))
 
@@ -249,6 +276,38 @@ export default function ProductForm() {
                 ＋ 新增規格
               </button>
             </div>
+
+            {/* Colors */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">顏色選項</label>
+              <p className="text-xs text-gray-400 mb-3">輸入顏色名稱，自動對應色票。例：白色、水泥灰、深藍。</p>
+              <div className="flex gap-2 mb-3">
+                {colorInput && (
+                  <span className="w-10 h-10 rounded border border-gray-200 flex-shrink-0" style={{ background: detectColorHex(colorInput) }} />
+                )}
+                <input
+                  value={colorInput}
+                  onChange={e => setColorInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addColor())}
+                  placeholder="例：白色、水泥灰、透明"
+                  className="flex-1 border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:border-primary rounded-sm"
+                />
+                <button type="button" onClick={addColor}
+                  className="bg-dark text-white px-4 py-2.5 text-sm rounded-sm hover:bg-gray-700 flex-shrink-0">新增</button>
+              </div>
+              {form.colors.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {form.colors.map((c, i) => (
+                    <div key={i} className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-full pl-1 pr-3 py-1">
+                      <span className="w-6 h-6 rounded-full border border-gray-200 flex-shrink-0" style={{ background: c.hex }} />
+                      <span className="text-sm text-dark">{c.name}</span>
+                      <button type="button" onClick={() => removeColor(i)} className="text-gray-300 hover:text-red-500 transition-colors text-xs ml-1">✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">簡短描述</label>
               <p className="text-xs text-gray-400 mb-1.5">顯示在商品列表卡片上，建議 30–50 字，點出最大賣點。例：<span className="text-gray-500">高彈性水性聚氨酯，適合屋頂平台與浴室，無毒環保，乾燥快速。</span></p>
@@ -298,41 +357,6 @@ export default function ProductForm() {
               ) : <p className="text-xs text-red-400 mt-1.5">無法解析網址，請確認格式正確</p>
             })()}
           </div>
-        </div>
-
-        {/* Colors 顏色選項 */}
-        <div className="bg-white rounded shadow-sm p-6">
-          <h2 className="font-bold text-dark mb-1 pb-3 border-b border-gray-100">顏色選項</h2>
-          <p className="text-xs text-gray-400 mb-4">可新增產品提供的顏色，例：白色、灰色。顯示於產品頁色票區。</p>
-          <div className="flex gap-2 mb-4">
-            <input
-              type="color"
-              value={colorInput.hex}
-              onChange={e => setColorInput(c => ({ ...c, hex: e.target.value }))}
-              className="w-10 h-10 rounded border border-gray-200 cursor-pointer p-0.5"
-            />
-            <input
-              value={colorInput.name}
-              onChange={e => setColorInput(c => ({ ...c, name: e.target.value }))}
-              onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addColor())}
-              placeholder="顏色名稱，例：白色"
-              className="flex-1 border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:border-primary rounded-sm"
-            />
-            <button type="button" onClick={addColor}
-              className="bg-dark text-white px-4 py-2.5 text-sm rounded-sm hover:bg-gray-700">新增</button>
-          </div>
-          {form.colors.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {form.colors.map((c, i) => (
-                <div key={i} className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-full pl-1 pr-3 py-1">
-                  <span className="w-6 h-6 rounded-full border border-gray-200 flex-shrink-0" style={{ background: c.hex }} />
-                  <span className="text-sm text-dark">{c.name}</span>
-                  <button type="button" onClick={() => removeColor(i)}
-                    className="text-gray-300 hover:text-red-500 transition-colors text-xs ml-1">✕</button>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Datasheet PDF */}
