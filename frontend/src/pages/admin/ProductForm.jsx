@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 const EMPTY = {
   name: '', category_id: '', short_desc: '', description: '',
   features: [], applications: [], shopee_url: '',
-  images: [], datasheet_url: '', installation_url: '', youtube_url: '', is_active: true, is_featured: false, price: '', prices: [], sort_order: 0
+  images: [], datasheet_url: '', installation_url: '', youtube_url: '', colors: [], is_active: true, is_featured: false, price: '', prices: [], sort_order: 0
 }
 
 const FEATURE_SUGGESTIONS = [
@@ -48,6 +48,7 @@ export default function ProductForm() {
   const [customAppInput, setCustomAppInput] = useState('')
   const [pdfUploading, setPdfUploading] = useState(false)
   const [installationPdfUploading, setInstallationPdfUploading] = useState(false)
+  const [colorInput, setColorInput] = useState({ name: '', hex: '#ffffff' })
 
   useEffect(() => {
     api.get('/categories').then(r => setCategories(r.data || [])).catch(() => {})
@@ -66,6 +67,7 @@ export default function ProductForm() {
           datasheet_url: p.datasheet_url || '',
           installation_url: p.installation_url || '',
           youtube_url: p.youtube_url || '',
+          colors: Array.isArray(p.colors) ? p.colors : [],
           is_active: !!p.is_active,
           is_featured: !!p.is_featured,
           price: p.price || '',
@@ -105,6 +107,13 @@ export default function ProductForm() {
   const addPriceTier = () => set('prices', [...form.prices, { size: '', price: '' }])
   const updatePriceTier = (i, key, val) => set('prices', form.prices.map((t, idx) => idx === i ? { ...t, [key]: val } : t))
   const removePriceTier = (i) => set('prices', form.prices.filter((_, idx) => idx !== i))
+
+  const addColor = () => {
+    if (!colorInput.name.trim()) return
+    set('colors', [...form.colors, { name: colorInput.name.trim(), hex: colorInput.hex }])
+    setColorInput({ name: '', hex: '#ffffff' })
+  }
+  const removeColor = (i) => set('colors', form.colors.filter((_, idx) => idx !== i))
 
   const handleImageUpload = async (e) => {
     const files = e.target.files
@@ -289,6 +298,41 @@ export default function ProductForm() {
               ) : <p className="text-xs text-red-400 mt-1.5">無法解析網址，請確認格式正確</p>
             })()}
           </div>
+        </div>
+
+        {/* Colors 顏色選項 */}
+        <div className="bg-white rounded shadow-sm p-6">
+          <h2 className="font-bold text-dark mb-1 pb-3 border-b border-gray-100">顏色選項</h2>
+          <p className="text-xs text-gray-400 mb-4">可新增產品提供的顏色，例：白色、灰色。顯示於產品頁色票區。</p>
+          <div className="flex gap-2 mb-4">
+            <input
+              type="color"
+              value={colorInput.hex}
+              onChange={e => setColorInput(c => ({ ...c, hex: e.target.value }))}
+              className="w-10 h-10 rounded border border-gray-200 cursor-pointer p-0.5"
+            />
+            <input
+              value={colorInput.name}
+              onChange={e => setColorInput(c => ({ ...c, name: e.target.value }))}
+              onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addColor())}
+              placeholder="顏色名稱，例：白色"
+              className="flex-1 border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:border-primary rounded-sm"
+            />
+            <button type="button" onClick={addColor}
+              className="bg-dark text-white px-4 py-2.5 text-sm rounded-sm hover:bg-gray-700">新增</button>
+          </div>
+          {form.colors.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {form.colors.map((c, i) => (
+                <div key={i} className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-full pl-1 pr-3 py-1">
+                  <span className="w-6 h-6 rounded-full border border-gray-200 flex-shrink-0" style={{ background: c.hex }} />
+                  <span className="text-sm text-dark">{c.name}</span>
+                  <button type="button" onClick={() => removeColor(i)}
+                    className="text-gray-300 hover:text-red-500 transition-colors text-xs ml-1">✕</button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Datasheet PDF */}

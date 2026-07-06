@@ -110,6 +110,21 @@ export default function ProductDetail() {
                 )}
               </div>
 
+              {/* Colors 色票 */}
+              {product.colors?.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-dark mb-2">顏色選項</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {product.colors.map((c, i) => (
+                      <div key={i} className="flex items-center gap-1.5 border border-gray-100 rounded-full pl-1 pr-3 py-1 bg-gray-50">
+                        <span className="w-5 h-5 rounded-full border border-gray-200 flex-shrink-0" style={{ background: c.hex }} />
+                        <span className="text-xs text-gray-600">{c.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Shopee */}
               {product.shopee_url && (
                 <a href={product.shopee_url} target="_blank" rel="noopener noreferrer"
