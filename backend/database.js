@@ -75,28 +75,6 @@ function initDatabase() {
     );
   `);
 
-  // 同步分類（INSERT OR IGNORE 不覆蓋已存在的名稱）
-  const desiredCats = [
-    { name: '防水塗料',        sort_order: 1  },
-    { name: '防水砂漿',        sort_order: 2  },
-    { name: '隔熱材料',        sort_order: 3  },
-    { name: '透明塗料',        sort_order: 4  },
-    { name: '填縫材料',        sort_order: 5  },
-    { name: '黏著劑',          sort_order: 6  },
-    { name: '砂漿改性劑',      sort_order: 7  },
-    { name: '灌注材料',        sort_order: 8  },
-    { name: '自平水泥',        sort_order: 9  },
-    { name: '結構補強',        sort_order: 10 },
-    { name: '防水毯/瀝青/底油', sort_order: 11 },
-    { name: 'PU/EPOXY',        sort_order: 12 },
-  ];
-  const insertCat = db.prepare('INSERT OR IGNORE INTO categories (name, sort_order) VALUES (?, ?)');
-  const updateCatOrder = db.prepare('UPDATE categories SET sort_order = ? WHERE name = ?');
-  for (const c of desiredCats) {
-    insertCat.run(c.name, c.sort_order);
-    updateCatOrder.run(c.sort_order, c.name);
-  }
-
   // 初始化預設超級管理員（密碼隨機產生，只顯示一次）
   const userCount = db.prepare('SELECT COUNT(*) as c FROM users').get();
   if (userCount.c === 0) {
