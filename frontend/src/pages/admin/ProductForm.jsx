@@ -211,7 +211,7 @@ export default function ProductForm() {
       }
       navigate('/admin/products')
     } catch (err) {
-      toast.error(err.message || '儲存失敗')
+      toast.error(err.message || '儲存失敗', { duration: 5000 })
     } finally { setSaving(false) }
   }
 

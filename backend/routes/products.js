@@ -52,6 +52,7 @@ router.get('/featured', (req, res) => {
     LEFT JOIN categories c ON p.category_id = c.id
     WHERE p.is_active = 1 AND p.is_featured = 1
     ORDER BY c.sort_order ASC, c.name ASC, p.created_at ASC
+    LIMIT 3
   `).all();
 
   const parsed = products.map(p => ({
@@ -177,9 +178,17 @@ router.post('/', authenticateToken, (req, res) => {
 router.put('/:id', authenticateToken, (req, res) => {
   const { name, category_id, short_desc, description, features, applications, shopee_url, images, datasheet_url, installation_url, youtube_url, colors, is_active, is_featured, price, prices, sort_order } = req.body;
 
-  const existing = db.prepare('SELECT id FROM products WHERE id = ?').get(req.params.id);
+  const existing = db.prepare('SELECT id, is_featured FROM products WHERE id = ?').get(req.params.id);
   if (!existing) {
     return res.status(404).json({ success: false, message: '商品不存在' });
+  }
+
+  // 精選商品上限 3 個：若本商品原本不是精選，但要設為精選，先檢查數量
+  if (is_featured && !existing.is_featured) {
+    const featuredCount = db.prepare('SELECT COUNT(*) as c FROM products WHERE is_featured = 1').get();
+    if (featuredCount.c >= 3) {
+      return res.status(400).json({ success: false, message: '精選商品已達上限（3 個），請先取消其他商品的精選後再設定。' });
+    }
   }
 
   db.prepare(`
