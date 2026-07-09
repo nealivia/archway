@@ -113,6 +113,7 @@ router.get('/admin/all', authenticateToken, (req, res) => {
   const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
 
   const total = db.prepare(`SELECT COUNT(*) as c FROM products p ${whereClause}`).get(...params);
+  const featuredTotal = db.prepare('SELECT COUNT(*) as c FROM products WHERE is_featured = 1').get();
   const products = db.prepare(`
     SELECT p.*, c.name as category_name
     FROM products p
@@ -131,7 +132,7 @@ router.get('/admin/all', authenticateToken, (req, res) => {
     colors: JSON.parse(p.colors || '[]')
   }));
 
-  res.json({ success: true, data: parsed, total: total.c });
+  res.json({ success: true, data: parsed, total: total.c, featuredTotal: featuredTotal.c });
 });
 
 // 後台 - 新增商品

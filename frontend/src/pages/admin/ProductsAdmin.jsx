@@ -10,6 +10,7 @@ export default function ProductsAdmin() {
   const [search, setSearch] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [total, setTotal] = useState(0)
+  const [featuredTotal, setFeaturedTotal] = useState(0)
   const [page, setPage] = useState(1)
   const LIMIT = 15
 
@@ -19,7 +20,7 @@ export default function ProductsAdmin() {
     if (categoryId) params.set('category_id', categoryId)
     if (search) params.set('search', search)
     api.get(`/products/admin/all?${params}`)
-      .then(r => { setProducts(r.data || []); setTotal(r.total || 0) })
+      .then(r => { setProducts(r.data || []); setTotal(r.total || 0); setFeaturedTotal(r.featuredTotal || 0) })
       .catch(() => toast.error('載入失敗'))
       .finally(() => setLoading(false))
   }, [search, categoryId, page])
@@ -29,7 +30,7 @@ export default function ProductsAdmin() {
     api.get('/categories').then(r => setCategories(r.data || [])).catch(() => {})
   }, [])
 
-  const featuredCount = products.filter(p => p.is_featured).length
+  const featuredCount = featuredTotal
 
   const toggleActive = async (p) => {
     try {
