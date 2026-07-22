@@ -47,7 +47,7 @@ export default function About() {
         <div className="max-w-5xl mx-auto">
           <div className="section-eyebrow">ARCHWAY 松上防水</div>
           <h1 className="text-4xl md:text-5xl font-bold text-dark tracking-tight mb-2">關於我們</h1>
-          <p className="text-base md:text-lg text-gray-500">30 年專業經驗，您最信賴的防水夥伴</p>
+          <p className="text-base md:text-lg text-gray-500">守護建築，是我們自 1991 年以來，從未動搖的承諾</p>
         </div>
       </section>
 
@@ -56,14 +56,15 @@ export default function About() {
         <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-16 items-start">
           <div>
             <div className="section-eyebrow">公司簡介</div>
-            <h2 className="text-3xl font-bold text-dark tracking-tight mb-6">滴水不漏，<br/>從 1991 年開始</h2>
+            <h2 className="text-3xl font-bold text-dark tracking-tight mb-6">守護每一道牆，<br/>從 1991 年開始</h2>
             <p className="text-sm text-gray-500 leading-relaxed mb-4">
-              松上防水成立於 1991 年，專注於高效能防水材料的銷售與工程施工。
-              我們擁有超過 30 年的產業經驗，產品廣泛應用於住宅、商業、工業等各類建築工程。
+              守護建築，不只是一句口號。松上防水成立於 1991 年，三十年來我們深信：
+              一棟建築能否長久屹立，取決於那一道看不見的防水層。
+              我們為住宅、商業建築與工業廠房提供全方位防水解決方案，守護每一位業主最重要的資產。
             </p>
             <p className="text-sm text-gray-500 leading-relaxed">
-              研發團隊持續投入新技術研究，結合環保理念與高性能需求，
-              提供符合國際標準的防水解決方案。
+              研發團隊持續突破材料極限，結合環保配方與工法創新，
+              讓防水不只是阻水，更是為建築築起長久守護的屏障。
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -131,7 +132,7 @@ export default function About() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <div className="section-eyebrow">聯絡我們</div>
-            <h2 className="text-4xl font-bold text-dark tracking-tight mb-2">有問題嗎？</h2>
+            <h2 className="text-4xl font-bold text-dark tracking-tight mb-2">讓我們守護您的建築</h2>
             <p className="text-gray-500">填寫表單，我們將於一個工作天內回覆</p>
           </div>
           <div className="grid md:grid-cols-2 gap-12 items-start">
