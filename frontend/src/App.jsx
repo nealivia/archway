@@ -30,6 +30,7 @@ import ProductForm from './pages/admin/ProductForm'
 import UsersAdmin from './pages/admin/UsersAdmin'
 import CategoriesAdmin from './pages/admin/CategoriesAdmin'
 import StoresAdmin from './pages/admin/StoresAdmin'
+import FaqAdmin from './pages/admin/FaqAdmin'
 import AccountSettings from './pages/admin/AccountSettings'
 import ProtectedRoute from './components/admin/ProtectedRoute'
 
@@ -70,6 +71,7 @@ export default function App() {
             <Route path="products/:id/edit" element={<ProductForm />} />
             <Route path="categories" element={<CategoriesAdmin />} />
             <Route path="stores" element={<StoresAdmin />} />
+            <Route path="faq" element={<FaqAdmin />} />
             <Route path="settings" element={<AccountSettings />} />
             <Route path="users" element={<UsersAdmin />} />
           </Route>

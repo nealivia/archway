@@ -118,6 +118,33 @@ function initDatabase() {
   try { db.exec("ALTER TABLE products ADD COLUMN youtube_url TEXT DEFAULT ''"); } catch (e) { /* 已存在 */ }
   try { db.exec("ALTER TABLE products ADD COLUMN colors TEXT DEFAULT '[]'"); } catch (e) { /* 已存在 */ }
 
+  // FAQ 表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS faqs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      category TEXT NOT NULL DEFAULT '',
+      question TEXT NOT NULL,
+      answer TEXT NOT NULL DEFAULT '',
+      sort_order INTEGER DEFAULT 0,
+      is_active INTEGER DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+  // Seed 初始資料（只在表格為空時）
+  const faqCount = db.prepare('SELECT COUNT(*) as c FROM faqs').get();
+  if (faqCount.c === 0) {
+    const ins = db.prepare('INSERT INTO faqs (category, question, answer, sort_order) VALUES (?, ?, ?, ?)');
+    ins.run('施工前準備', '施工前基面需要怎麼處理？', '基面必須乾淨、乾燥、無粉塵、無油污、無起砂。舊有疏鬆或剝落的材料需徹底清除，裂縫建議先填補後再進行防水施工。若基面過於乾燥，可先潤濕（飽和面乾）再施工。', 1);
+    ins.run('施工前準備', '需要先塗底漆嗎？', '視材料與基材而定。多數水性防水塗料可免底漆直接施工。混凝土或吸水性強的基面建議先塗界面處理劑（Primer），以提升附著力。詳情請參考各產品技術文件或來電洽詢。', 2);
+    ins.run('施工前準備', '下雨天或潮濕環境可以施工嗎？', '建議在天氣晴朗、氣溫 5–40°C、相對濕度 85% 以下時施工。部分產品（如水泥基防水材）可在潮濕面施工，但不可在積水或雨天進行。具體請參閱各產品說明。', 3);
+    ins.run('施工方式', '需要塗幾道？每道之間要等多久？', '一般建議至少 2 道，且方向交叉（橫向＋縱向）以確保均勻覆蓋。每道需待前一道完全乾燥（表乾，通常 4–8 小時）後再施作。完整乾燥時間依氣溫與濕度不同，通常為 24–72 小時。', 1);
+    ins.run('施工方式', '用刷子、滾筒還是噴塗？', '三種方式均可，依現場條件與產品特性選擇。刷塗適合細部角隅；滾筒效率高，適合大面積；噴塗速度最快但需專業設備。初次施工建議使用刷塗，確保滲透均勻。', 2);
+    ins.run('施工方式', '防水層施工完多久可以通水或踩踏？', '一般塗料乾燥後 4–8 小時可輕踩，但完整固化需 7 天。建議 24 小時後再進行淋水測試，7 天後才能恢復正常使用或覆蓋面層材料。', 3);
+    ins.run('產品選擇', '屋頂平台和浴室應該用不同的防水材料嗎？', '是的。屋頂需承受紫外線、溫差大，適合彈性高、耐候性強的防水塗料（如聚氨酯或丙烯酸系）。浴室面積小、需耐長期潮濕，可選用水泥基防水材或衛浴專用彈性防水膠，無毒環保更佳。', 1);
+    ins.run('產品選擇', '舊有防水層可以直接覆蓋嗎？', '視舊有防水層狀況而定。若附著良好、無起鼓或剝落，部分材料可直接覆蓋。若舊層已失效、有積水或大面積開裂，建議先移除再重新施工。不確定時，請來電讓我們的技術人員協助判斷。', 2);
+  }
+
   // 初始化預設設定
   const maintenanceSetting = db.prepare("SELECT value FROM settings WHERE key = 'maintenance_mode'").get();
   if (!maintenanceSetting) {
