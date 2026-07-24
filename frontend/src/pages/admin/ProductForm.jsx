@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 const EMPTY = {
   name: '', category_id: '', short_desc: '', description: '',
   features: [], applications: [], shopee_url: '',
-  images: [], datasheet_url: '', installation_url: '', youtube_url: '', colors: [], is_active: true, is_featured: false, price: '', prices: [], sort_order: 0
+  images: [], datasheet_url: '', installation_url: '', report_url: '', youtube_url: '', colors: [], is_active: true, is_featured: false, price: '', prices: [], sort_order: 0
 }
 
 const FEATURE_SUGGESTIONS = [
@@ -48,6 +48,7 @@ export default function ProductForm() {
   const [customAppInput, setCustomAppInput] = useState('')
   const [pdfUploading, setPdfUploading] = useState(false)
   const [installationPdfUploading, setInstallationPdfUploading] = useState(false)
+  const [reportPdfUploading, setReportPdfUploading] = useState(false)
   const [colorInput, setColorInput] = useState('')
 
   useEffect(() => {
@@ -66,6 +67,7 @@ export default function ProductForm() {
           images: p.images || [],
           datasheet_url: p.datasheet_url || '',
           installation_url: p.installation_url || '',
+          report_url: p.report_url || '',
           youtube_url: p.youtube_url || '',
           colors: Array.isArray(p.colors) ? p.colors : [],
           is_active: !!p.is_active,
@@ -190,6 +192,22 @@ export default function ProductForm() {
       toast.success(`已上傳：${res.originalName}`)
     } catch { toast.error('PDF 上傳失敗') }
     finally { setInstallationPdfUploading(false) }
+  }
+
+  const handleReportPdfUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setReportPdfUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('pdf', file)
+      const res = await api.post('/upload/pdf', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      set('report_url', res.url)
+      toast.success(`已上傳：${res.originalName}`)
+    } catch { toast.error('PDF 上傳失敗') }
+    finally { setReportPdfUploading(false) }
   }
 
   const handleSubmit = async (e) => {
@@ -427,6 +445,42 @@ export default function ProductForm() {
               <div className="text-sm text-gray-500">{installationPdfUploading ? '上傳中...' : '點擊上傳施工說明 PDF'}</div>
               <div className="text-xs text-gray-400 mt-1">例：施工步驟說明書、施工注意事項、工法圖解</div>
               <input type="file" accept=".pdf" onChange={handleInstallationPdfUpload} disabled={installationPdfUploading} className="hidden" />
+            </label>
+          )}
+        </div>
+
+        {/* Test Report PDF */}
+        <div className="bg-white rounded shadow-sm p-6">
+          <h2 className="font-bold text-dark mb-1 pb-3 border-b border-gray-100">實驗報告 PDF</h2>
+          <p className="text-xs text-gray-400 mb-4">上傳防水性能實驗報告，客戶可在產品頁下載參考（最大 20MB）</p>
+
+          {form.report_url ? (
+            <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded px-4 py-3">
+              <svg className="w-8 h-8 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+              </svg>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-dark truncate">
+                  {form.report_url.split('/').pop()}
+                </p>
+                <a href={form.report_url} target="_blank" rel="noreferrer"
+                  className="text-xs text-primary hover:underline">預覽 PDF ›</a>
+              </div>
+              <div className="flex gap-2">
+                <label className={`px-3 py-1.5 text-xs border border-gray-300 rounded cursor-pointer hover:bg-gray-100 ${reportPdfUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                  {reportPdfUploading ? '上傳中...' : '更換'}
+                  <input type="file" accept=".pdf" onChange={handleReportPdfUpload} disabled={reportPdfUploading} className="hidden" />
+                </label>
+                <button type="button" onClick={() => set('report_url', '')}
+                  className="px-3 py-1.5 text-xs border border-red-200 text-red-500 rounded hover:bg-red-50">刪除</button>
+              </div>
+            </div>
+          ) : (
+            <label className={`block border-2 border-dashed border-gray-300 hover:border-primary rounded p-8 text-center cursor-pointer transition-colors ${reportPdfUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+              <div className="text-3xl mb-2">🔬</div>
+              <div className="text-sm text-gray-500">{reportPdfUploading ? '上傳中...' : '點擊上傳實驗報告 PDF'}</div>
+              <div className="text-xs text-gray-400 mt-1">例：防水性能測試報告、第三方認證報告</div>
+              <input type="file" accept=".pdf" onChange={handleReportPdfUpload} disabled={reportPdfUploading} className="hidden" />
             </label>
           )}
         </div>

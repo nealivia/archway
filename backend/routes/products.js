@@ -137,15 +137,15 @@ router.get('/admin/all', authenticateToken, (req, res) => {
 
 // 後台 - 新增商品
 router.post('/', authenticateToken, (req, res) => {
-  const { name, category_id, short_desc, description, features, applications, shopee_url, images, datasheet_url, installation_url, youtube_url, colors, is_active, is_featured, price, prices, sort_order } = req.body;
+  const { name, category_id, short_desc, description, features, applications, shopee_url, images, datasheet_url, installation_url, report_url, youtube_url, colors, is_active, is_featured, price, prices, sort_order } = req.body;
 
   if (!name) {
     return res.status(400).json({ success: false, message: '商品名稱為必填' });
   }
 
   const stmt = db.prepare(`
-    INSERT INTO products (name, category_id, short_desc, description, features, applications, shopee_url, images, datasheet_url, installation_url, youtube_url, colors, is_active, is_featured, price, prices, sort_order)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO products (name, category_id, short_desc, description, features, applications, shopee_url, images, datasheet_url, installation_url, report_url, youtube_url, colors, is_active, is_featured, price, prices, sort_order)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const result = stmt.run(
@@ -159,6 +159,7 @@ router.post('/', authenticateToken, (req, res) => {
     JSON.stringify(images || []),
     datasheet_url || '',
     installation_url || '',
+    report_url || '',
     youtube_url || '',
     JSON.stringify(colors || []),
     is_active !== undefined ? (is_active ? 1 : 0) : 1,
@@ -177,7 +178,7 @@ router.post('/', authenticateToken, (req, res) => {
 
 // 後台 - 更新商品
 router.put('/:id', authenticateToken, (req, res) => {
-  const { name, category_id, short_desc, description, features, applications, shopee_url, images, datasheet_url, installation_url, youtube_url, colors, is_active, is_featured, price, prices, sort_order } = req.body;
+  const { name, category_id, short_desc, description, features, applications, shopee_url, images, datasheet_url, installation_url, report_url, youtube_url, colors, is_active, is_featured, price, prices, sort_order } = req.body;
 
   const existing = db.prepare('SELECT id, is_featured FROM products WHERE id = ?').get(req.params.id);
   if (!existing) {
@@ -196,7 +197,7 @@ router.put('/:id', authenticateToken, (req, res) => {
     UPDATE products SET
       name = ?, category_id = ?, short_desc = ?, description = ?,
       features = ?, applications = ?, shopee_url = ?,
-      images = ?, datasheet_url = ?, installation_url = ?, youtube_url = ?, colors = ?, is_active = ?, is_featured = ?, price = ?, prices = ?, sort_order = ?,
+      images = ?, datasheet_url = ?, installation_url = ?, report_url = ?, youtube_url = ?, colors = ?, is_active = ?, is_featured = ?, price = ?, prices = ?, sort_order = ?,
       updated_at = datetime('now')
     WHERE id = ?
   `).run(
@@ -207,6 +208,7 @@ router.put('/:id', authenticateToken, (req, res) => {
     JSON.stringify(images || []),
     datasheet_url || '',
     installation_url || '',
+    report_url || '',
     youtube_url || '',
     JSON.stringify(colors || []),
     is_active ? 1 : 0,

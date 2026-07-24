@@ -115,6 +115,7 @@ function initDatabase() {
   try { db.exec("ALTER TABLE users ADD COLUMN totp_secret TEXT DEFAULT NULL"); } catch (e) { /* 已存在 */ }
   try { db.exec("ALTER TABLE users ADD COLUMN totp_enabled INTEGER DEFAULT 0"); } catch (e) { /* 已存在 */ }
   try { db.exec("ALTER TABLE products ADD COLUMN prices TEXT DEFAULT '[]'"); } catch (e) { /* 已存在 */ }
+  try { db.exec("ALTER TABLE products ADD COLUMN report_url TEXT DEFAULT ''"); } catch (e) { /* 已存在 */ }
   try { db.exec("ALTER TABLE products ADD COLUMN youtube_url TEXT DEFAULT ''"); } catch (e) { /* 已存在 */ }
   try { db.exec("ALTER TABLE products ADD COLUMN colors TEXT DEFAULT '[]'"); } catch (e) { /* 已存在 */ }
 
