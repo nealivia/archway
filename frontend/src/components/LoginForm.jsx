@@ -5,8 +5,10 @@ import toast from 'react-hot-toast'
 
 // 共用登入表單（帳號＋密碼＋可選 2FA），後台管理與電子行事曆各自的登入頁
 // 只是用不同文案 / 導向路徑包裝這個元件，登入邏輯與畫面完全共用。
-export default function LoginForm({ title, subtitle, redirectTo }) {
-  const { login, complete2FA, isAuthenticated } = useAuth()
+// allow：這個登入頁對應的區域允許哪些角色進入。已登入但角色不符時（例如用一般管理員
+// 帳號打開電子行事曆登入頁）不能直接導回目的頁，否則會跟 ProtectedRoute 互相導向造成無限迴圈、白畫面。
+export default function LoginForm({ title, subtitle, redirectTo, allow }) {
+  const { login, complete2FA, isAuthenticated, user, logout } = useAuth()
   const navigate = useNavigate()
 
   // step: 'password' | '2fa'
@@ -16,7 +18,23 @@ export default function LoginForm({ title, subtitle, redirectTo }) {
   const [tempToken, setTempToken] = useState('')
   const [loading, setLoading] = useState(false)
 
-  if (isAuthenticated) return <Navigate to={redirectTo} replace />
+  if (isAuthenticated) {
+    const roleAllowed = !allow || allow.includes(user?.role)
+    if (roleAllowed) return <Navigate to={redirectTo} replace />
+
+    return (
+      <div className="min-h-screen bg-dark flex items-center justify-center px-4">
+        <div className="w-full max-w-md text-center">
+          <p className="text-white mb-2">目前登入的帳號「{user?.username}」沒有權限使用「{title}」</p>
+          <p className="text-gray-400 text-sm mb-6">請登出後改用有權限的帳號登入</p>
+          <button onClick={logout}
+            className="bg-primary hover:bg-primary-dark text-white font-semibold py-3 px-8 transition-colors rounded-sm">
+            登出
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   const handlePassword = async (e) => {
     e.preventDefault()
