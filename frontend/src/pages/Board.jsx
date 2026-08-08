@@ -202,54 +202,6 @@ function DeliveriesTab({ storeId, stores }) {
 
   return (
     <div>
-      <form onSubmit={submit} className="bg-white border border-gray-200 rounded-sm p-5 mb-6 space-y-3">
-        <h2 className="font-semibold text-dark text-sm mb-1">新增配送單（與客人約定的送貨時間）</h2>
-        <div className="grid md:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">配送時間</label>
-            <input type="datetime-local" value={form.delivery_time}
-              onChange={e => setForm(f => ({ ...f, delivery_time: e.target.value }))}
-              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">狀態</label>
-            <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
-              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary">
-              {DELIVERY_STATUSES.map(s => <option key={s}>{s}</option>)}
-            </select>
-          </div>
-        </div>
-        <div>
-          <label className="block text-xs text-gray-500 mb-1">地點</label>
-          <input value={form.location} placeholder="例如：客戶工地 / 中山店 後門收貨區"
-            onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-            className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
-        </div>
-        <div className="grid md:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">客戶名稱</label>
-            <input value={form.customer_name} placeholder="例如：王先生"
-              onChange={e => setForm(f => ({ ...f, customer_name: e.target.value }))}
-              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">客戶聯絡方式</label>
-            <input value={form.customer_contact} placeholder="例如：0912-345-678"
-              onChange={e => setForm(f => ({ ...f, customer_contact: e.target.value }))}
-              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
-          </div>
-        </div>
-        <div>
-          <label className="block text-xs text-gray-500 mb-1">貨物內容</label>
-          <textarea value={form.content} rows={2} placeholder="例如：防水塗料 5桶、矽利康 2箱"
-            onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
-            className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary resize-none" />
-        </div>
-        <button disabled={saving} className="btn-primary text-sm py-2 px-6 disabled:opacity-50">
-          {saving ? '送出中...' : '送出配送單'}
-        </button>
-      </form>
-
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <button onClick={() => setViewMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
@@ -329,6 +281,54 @@ function DeliveriesTab({ storeId, stores }) {
           </div>
         ))}
       </div>
+
+      <form onSubmit={submit} className="bg-white border border-gray-200 rounded-sm p-5 mt-6 space-y-3">
+        <h2 className="font-semibold text-dark text-sm mb-1">新增配送單（與客人約定的送貨時間）</h2>
+        <div className="grid md:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">配送時間</label>
+            <input type="datetime-local" value={form.delivery_time}
+              onChange={e => setForm(f => ({ ...f, delivery_time: e.target.value }))}
+              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">狀態</label>
+            <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
+              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary">
+              {DELIVERY_STATUSES.map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">地點</label>
+          <input value={form.location} placeholder="例如：客戶工地 / 中山店 後門收貨區"
+            onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
+            className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+        </div>
+        <div className="grid md:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">客戶名稱</label>
+            <input value={form.customer_name} placeholder="例如：王先生"
+              onChange={e => setForm(f => ({ ...f, customer_name: e.target.value }))}
+              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">客戶聯絡方式</label>
+            <input value={form.customer_contact} placeholder="例如：0912-345-678"
+              onChange={e => setForm(f => ({ ...f, customer_contact: e.target.value }))}
+              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">貨物內容</label>
+          <textarea value={form.content} rows={2} placeholder="例如：防水塗料 5桶、矽利康 2箱"
+            onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
+            className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary resize-none" />
+        </div>
+        <button disabled={saving} className="btn-primary text-sm py-2 px-6 disabled:opacity-50">
+          {saving ? '送出中...' : '送出配送單'}
+        </button>
+      </form>
     </div>
   )
 }
