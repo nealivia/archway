@@ -136,6 +136,7 @@ function DeliveriesTab({ storeId, stores }) {
   const [list, setList] = useState([])
   const [filterStore, setFilterStore] = useState('')
   const [form, setForm] = useState(EMPTY_DELIVERY_FORM)
+  const [editingId, setEditingId] = useState(null)
   const [saving, setSaving] = useState(false)
   const [viewMonth, setViewMonth] = useState(() => { const d = new Date(); d.setDate(1); return d })
   const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date()))
@@ -164,12 +165,35 @@ function DeliveriesTab({ storeId, stores }) {
     if (!form.delivery_time || !form.location) return toast.error('配送時間與地點為必填')
     setSaving(true)
     try {
-      await api.post('/board/deliveries', form, withStore(storeId))
-      toast.success('已新增配送單')
+      if (editingId) {
+        await api.put(`/board/deliveries/${editingId}`, form, withStore(storeId))
+        toast.success('已更新配送單')
+      } else {
+        await api.post('/board/deliveries', form, withStore(storeId))
+        toast.success('已新增配送單')
+      }
       setForm(EMPTY_DELIVERY_FORM)
+      setEditingId(null)
       load()
-    } catch (err) { toast.error(err.message || '新增失敗') }
+    } catch (err) { toast.error(err.message || '儲存失敗') }
     finally { setSaving(false) }
+  }
+
+  const startEdit = (item) => {
+    setEditingId(item.id)
+    setForm({
+      delivery_time: item.delivery_time,
+      location: item.location,
+      content: item.content || '',
+      status: item.status,
+      customer_name: item.customer_name || '',
+      customer_contact: item.customer_contact || ''
+    })
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setForm(EMPTY_DELIVERY_FORM)
   }
 
   const cycleStatus = async (item) => {
@@ -185,6 +209,7 @@ function DeliveriesTab({ storeId, stores }) {
     try {
       await api.delete(`/board/deliveries/${item.id}`, withStore(storeId))
       toast.success('已刪除')
+      if (editingId === item.id) cancelEdit()
       load()
     } catch (err) { toast.error(err.message || '刪除失敗') }
   }
@@ -192,7 +217,7 @@ function DeliveriesTab({ storeId, stores }) {
   const pickDay = (d) => {
     const k = dateKey(d)
     setSelectedDate(k)
-    setForm(f => ({ ...f, delivery_time: f.delivery_time ? f.delivery_time : `${k}T09:00` }))
+    if (!editingId) setForm(f => ({ ...f, delivery_time: f.delivery_time ? f.delivery_time : `${k}T09:00` }))
   }
 
   const today = dateKey(new Date())
@@ -275,6 +300,7 @@ function DeliveriesTab({ storeId, stores }) {
             {String(item.store_id) === String(storeId) && (
               <div className="flex gap-4 mt-2">
                 <button onClick={() => cycleStatus(item)} className="text-xs text-gray-500 underline">切換狀態</button>
+                <button onClick={() => startEdit(item)} className="text-xs text-primary underline">編輯</button>
                 <button onClick={() => remove(item)} className="text-xs text-red-500 underline">刪除</button>
               </div>
             )}
@@ -283,7 +309,7 @@ function DeliveriesTab({ storeId, stores }) {
       </div>
 
       <form onSubmit={submit} className="bg-white border border-gray-200 rounded-sm p-5 mt-6 space-y-3">
-        <h2 className="font-semibold text-dark text-sm mb-1">新增配送單（與客人約定的送貨時間）</h2>
+        <h2 className="font-semibold text-dark text-sm mb-1">{editingId ? '編輯配送單' : '新增配送單（與客人約定的送貨時間）'}</h2>
         <div className="grid md:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs text-gray-500 mb-1">配送時間</label>
@@ -325,19 +351,27 @@ function DeliveriesTab({ storeId, stores }) {
             onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
             className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary resize-none" />
         </div>
-        <button disabled={saving} className="btn-primary text-sm py-2 px-6 disabled:opacity-50">
-          {saving ? '送出中...' : '送出配送單'}
-        </button>
+        <div className="flex gap-3">
+          <button disabled={saving} className="btn-primary text-sm py-2 px-6 disabled:opacity-50">
+            {saving ? '儲存中...' : (editingId ? '更新配送單' : '送出配送單')}
+          </button>
+          {editingId && (
+            <button type="button" onClick={cancelEdit} className="text-sm text-gray-500 hover:text-dark px-4 py-2">取消編輯</button>
+          )}
+        </div>
       </form>
     </div>
   )
 }
 
 // ================= 缺訂貨狀態 =================
+const EMPTY_STOCK_FORM = { item_name: '', status: '缺貨', note: '' }
+
 function StockTab({ storeId, stores }) {
   const [list, setList] = useState([])
   const [filterStore, setFilterStore] = useState('')
-  const [form, setForm] = useState({ item_name: '', status: '缺貨', note: '' })
+  const [form, setForm] = useState(EMPTY_STOCK_FORM)
+  const [editingId, setEditingId] = useState(null)
   const [saving, setSaving] = useState(false)
 
   const load = useCallback(() => {
@@ -356,12 +390,28 @@ function StockTab({ storeId, stores }) {
     if (!form.item_name) return toast.error('品項為必填')
     setSaving(true)
     try {
-      await api.post('/board/stock', form, withStore(storeId))
-      toast.success('已送出')
-      setForm({ item_name: '', status: '缺貨', note: '' })
+      if (editingId) {
+        await api.put(`/board/stock/${editingId}`, form, withStore(storeId))
+        toast.success('已更新')
+      } else {
+        await api.post('/board/stock', form, withStore(storeId))
+        toast.success('已送出')
+      }
+      setForm(EMPTY_STOCK_FORM)
+      setEditingId(null)
       load()
-    } catch (err) { toast.error(err.message || '新增失敗') }
+    } catch (err) { toast.error(err.message || '儲存失敗') }
     finally { setSaving(false) }
+  }
+
+  const startEdit = (item) => {
+    setEditingId(item.id)
+    setForm({ item_name: item.item_name, status: item.status, note: item.note || '' })
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setForm(EMPTY_STOCK_FORM)
   }
 
   const cycleStatus = async (item) => {
@@ -377,6 +427,7 @@ function StockTab({ storeId, stores }) {
     try {
       await api.delete(`/board/stock/${item.id}`, withStore(storeId))
       toast.success('已刪除')
+      if (editingId === item.id) cancelEdit()
       load()
     } catch (err) { toast.error(err.message || '刪除失敗') }
   }
@@ -384,7 +435,7 @@ function StockTab({ storeId, stores }) {
   return (
     <div>
       <form onSubmit={submit} className="bg-white border border-gray-200 rounded-sm p-5 mb-6 space-y-3">
-        <h2 className="font-semibold text-dark text-sm mb-1">標示缺訂貨狀態</h2>
+        <h2 className="font-semibold text-dark text-sm mb-1">{editingId ? '編輯缺訂貨狀態' : '標示缺訂貨狀態'}</h2>
         <div>
           <label className="block text-xs text-gray-500 mb-1">品項</label>
           <input value={form.item_name} placeholder="例如：矽利康 白色 300ml"
@@ -404,9 +455,14 @@ function StockTab({ storeId, stores }) {
             onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
             className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
         </div>
-        <button disabled={saving} className="btn-primary text-sm py-2 px-6 disabled:opacity-50">
-          {saving ? '送出中...' : '送出'}
-        </button>
+        <div className="flex gap-3">
+          <button disabled={saving} className="btn-primary text-sm py-2 px-6 disabled:opacity-50">
+            {saving ? '儲存中...' : (editingId ? '更新' : '送出')}
+          </button>
+          {editingId && (
+            <button type="button" onClick={cancelEdit} className="text-sm text-gray-500 hover:text-dark px-4 py-2">取消編輯</button>
+          )}
+        </div>
       </form>
 
       <div className="flex items-center justify-between mb-3">
@@ -432,6 +488,7 @@ function StockTab({ storeId, stores }) {
             {String(item.store_id) === String(storeId) && (
               <div className="flex gap-4 mt-2">
                 <button onClick={() => cycleStatus(item)} className="text-xs text-gray-500 underline">切換狀態</button>
+                <button onClick={() => startEdit(item)} className="text-xs text-primary underline">編輯</button>
                 <button onClick={() => remove(item)} className="text-xs text-red-500 underline">刪除</button>
               </div>
             )}
