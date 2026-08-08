@@ -241,7 +241,7 @@ function DeliveriesTab({ storeId, stores }) {
         </div>
         <div>
           <label className="block text-xs text-gray-500 mb-1">貨物內容</label>
-          <textarea value={form.content} rows={2} placeholder="例如：生鮮蔬菜 3箱、飲料 5箱"
+          <textarea value={form.content} rows={2} placeholder="例如：防水塗料 5桶、矽利康 2箱"
             onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
             className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary resize-none" />
         </div>
@@ -387,7 +387,7 @@ function StockTab({ storeId, stores }) {
         <h2 className="font-semibold text-dark text-sm mb-1">標示缺訂貨狀態</h2>
         <div>
           <label className="block text-xs text-gray-500 mb-1">品項</label>
-          <input value={form.item_name} placeholder="例如：鮮奶 950ml"
+          <input value={form.item_name} placeholder="例如：矽利康 白色 300ml"
             onChange={e => setForm(f => ({ ...f, item_name: e.target.value }))}
             className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
         </div>
