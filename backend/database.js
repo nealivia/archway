@@ -16,7 +16,8 @@ function initDatabase() {
       username TEXT NOT NULL UNIQUE,
       email TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
-      role TEXT NOT NULL DEFAULT 'admin' CHECK(role IN ('super_admin', 'admin')),
+      role TEXT NOT NULL DEFAULT 'admin' CHECK(role IN ('super_admin', 'admin', 'store')),
+      store_id INTEGER REFERENCES stores(id) ON DELETE SET NULL,
       is_active INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -120,6 +121,39 @@ function initDatabase() {
   try { db.exec("ALTER TABLE products ADD COLUMN youtube_url TEXT DEFAULT ''"); } catch (e) { /* 已存在 */ }
   try { db.exec("ALTER TABLE products ADD COLUMN colors TEXT DEFAULT '[]'"); } catch (e) { /* 已存在 */ }
 
+  // users 表升級：加入 store 角色與 store_id（SQLite 不支援直接修改 CHECK 約束，需重建表）
+  try {
+    const usersSchema = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").get();
+    if (usersSchema && !usersSchema.sql.includes("'store'")) {
+      // activity_log 等表有 FK 指向 users，重建表前必須關閉 FK 檢查，否則 DROP TABLE 會失敗
+      db.exec('PRAGMA foreign_keys = OFF');
+      db.exec(`
+        CREATE TABLE users_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          username TEXT NOT NULL UNIQUE,
+          email TEXT NOT NULL UNIQUE,
+          password_hash TEXT NOT NULL,
+          role TEXT NOT NULL DEFAULT 'admin' CHECK(role IN ('super_admin', 'admin', 'store')),
+          store_id INTEGER REFERENCES stores(id) ON DELETE SET NULL,
+          is_active INTEGER NOT NULL DEFAULT 1,
+          totp_secret TEXT DEFAULT NULL,
+          totp_enabled INTEGER DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        INSERT INTO users_new (id, username, email, password_hash, role, is_active, totp_secret, totp_enabled, created_at, updated_at)
+          SELECT id, username, email, password_hash, role, is_active, totp_secret, totp_enabled, created_at, updated_at FROM users;
+        DROP TABLE users;
+        ALTER TABLE users_new RENAME TO users;
+      `);
+      db.exec('PRAGMA foreign_keys = ON');
+      console.log('✅ users 表已升級（新增 store 角色與 store_id 欄位）');
+    }
+  } catch (e) {
+    db.exec('PRAGMA foreign_keys = ON');
+    console.error('❌ users 表升級失敗:', e.message);
+  }
+
   // 分店電子佈告欄
   db.exec(`
     CREATE TABLE IF NOT EXISTS board_deliveries (
@@ -128,6 +162,8 @@ function initDatabase() {
       delivery_time TEXT NOT NULL,
       location TEXT NOT NULL,
       content TEXT DEFAULT '',
+      customer_name TEXT DEFAULT '',
+      customer_contact TEXT DEFAULT '',
       status TEXT NOT NULL DEFAULT '待配送',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -150,6 +186,30 @@ function initDatabase() {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
+
+  // 初始化分店登入帳號（僅在該分店尚無帳號時建立，密碼隨機產生，只顯示一次）
+  const boardUsernameMap = { '和平店': 'heping', '板橋店': 'banqiao', '樹林 Sika 展示店': 'shulin' };
+  const allStores = db.prepare('SELECT id, name FROM stores').all();
+  for (const s of allStores) {
+    const exists = db.prepare("SELECT id FROM users WHERE role = 'store' AND store_id = ?").get(s.id);
+    if (!exists) {
+      const username = boardUsernameMap[s.name] || `store${s.id}`;
+      const randomPassword = require('crypto').randomBytes(9).toString('base64url');
+      const hash = bcrypt.hashSync(randomPassword, 10);
+      db.prepare(`
+        INSERT INTO users (username, email, password_hash, role, store_id)
+        VALUES (?, ?, ?, 'store', ?)
+      `).run(username, `${username}@archway.local`, hash, s.id);
+      console.log('');
+      console.log('╔══════════════════════════════════════╗');
+      console.log('║        🏬 分店帳號已建立             ║');
+      console.log(`║  分店：${s.name.padEnd(30)}║`);
+      console.log(`║  帳號：${username.padEnd(30)}║`);
+      console.log(`║  密碼：${randomPassword.padEnd(30)}║`);
+      console.log('╚══════════════════════════════════════╝');
+      console.log('');
+    }
+  }
 
   // FAQ 表
   db.exec(`

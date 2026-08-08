@@ -3,11 +3,12 @@ import api from '../../api/client'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 
-const EMPTY = { username: '', email: '', password: '', role: 'admin', is_active: true }
+const EMPTY = { username: '', email: '', password: '', role: 'admin', store_id: '', is_active: true }
 
 export default function UsersAdmin() {
   const { user: currentUser } = useAuth()
   const [users, setUsers] = useState([])
+  const [stores, setStores] = useState([])
   const [form, setForm] = useState(EMPTY)
   const [editId, setEditId] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -18,18 +19,22 @@ export default function UsersAdmin() {
     api.get('/users').then(r => setUsers(r.data || [])).finally(() => setLoading(false))
   }
 
-  useEffect(() => { fetch() }, [])
+  useEffect(() => {
+    fetch()
+    api.get('/stores').then(r => setStores(r.data || [])).catch(() => {})
+  }, [])
 
   const reset = () => { setForm(EMPTY); setEditId(null); setShowForm(false) }
 
   const startEdit = (u) => {
     setEditId(u.id)
-    setForm({ username: u.username, email: u.email, password: '', role: u.role, is_active: !!u.is_active })
+    setForm({ username: u.username, email: u.email, password: '', role: u.role, store_id: u.store_id || '', is_active: !!u.is_active })
     setShowForm(true)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (form.role === 'store' && !form.store_id) return toast.error('分店角色需指定所屬分店')
     try {
       const payload = { ...form }
       if (!payload.password) delete payload.password
@@ -73,7 +78,7 @@ export default function UsersAdmin() {
       {/* Form */}
       {showForm && (
         <div className="bg-white rounded shadow-sm p-6 mb-6">
-          <h2 className="font-bold text-dark mb-5">{editId ? '編輯帳號' : '新增管理員帳號'}</h2>
+          <h2 className="font-bold text-dark mb-5">{editId ? '編輯帳號' : '新增帳號'}</h2>
           <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">帳號 *</label>
@@ -100,8 +105,20 @@ export default function UsersAdmin() {
                 className="w-full border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:border-primary rounded-sm">
                 <option value="admin">一般管理員</option>
                 <option value="super_admin">超級管理員</option>
+                <option value="store">分店（僅能使用電子佈告欄）</option>
               </select>
             </div>
+
+            {form.role === 'store' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">所屬分店 *</label>
+                <select value={form.store_id} onChange={e => set('store_id', e.target.value)}
+                  className="w-full border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:border-primary rounded-sm">
+                  <option value="">請選擇分店</option>
+                  {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+            )}
 
             {editId && (
               <div className="flex items-center gap-3">
@@ -147,8 +164,11 @@ export default function UsersAdmin() {
                 </td>
                 <td className="px-4 py-3 text-gray-400 hidden md:table-cell">{u.email}</td>
                 <td className="px-4 py-3 text-center">
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${u.role === 'super_admin' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}>
-                    {u.role === 'super_admin' ? '⭐ 超級管理員' : '管理員'}
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                    u.role === 'super_admin' ? 'bg-yellow-100 text-yellow-700' :
+                    u.role === 'store' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {u.role === 'super_admin' ? '⭐ 超級管理員' : u.role === 'store' ? `🏬 ${u.store_name || '分店'}` : '管理員'}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-center">

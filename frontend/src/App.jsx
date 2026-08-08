@@ -62,7 +62,7 @@ export default function App() {
         <Routes>
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={
-            <ProtectedRoute>
+            <ProtectedRoute allow={['admin', 'super_admin']}>
               <AdminLayout />
             </ProtectedRoute>
           }>
@@ -76,8 +76,12 @@ export default function App() {
             <Route path="settings" element={<AccountSettings />} />
             <Route path="users" element={<UsersAdmin />} />
           </Route>
-          {/* 分店佈告欄：內部工具，維護模式下仍可使用 */}
-          <Route path="/board" element={<Board />} />
+          {/* 分店佈告欄：內部工具，維護模式下仍可使用，需登入 */}
+          <Route path="/board" element={
+            <ProtectedRoute allow={['store', 'admin', 'super_admin']}>
+              <Board />
+            </ProtectedRoute>
+          } />
           <Route path="*" element={<Maintenance />} />
         </Routes>
       </AuthProvider>
@@ -98,13 +102,17 @@ export default function App() {
         <Route path="/about" element={<About />} />
         <Route path="/compare" element={<Compare />} />
         <Route path="/support" element={<TechSupport />} />
-        {/* 分店電子佈告欄：隱藏頁面，不放進 Navbar 導覽列 */}
-        <Route path="/board" element={<Board />} />
+        {/* 分店電子佈告欄：隱藏頁面，不放進 Navbar 導覽列，需登入 */}
+        <Route path="/board" element={
+          <ProtectedRoute allow={['store', 'admin', 'super_admin']}>
+            <Board />
+          </ProtectedRoute>
+        } />
 
         {/* 後台路由 */}
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={
-          <ProtectedRoute>
+          <ProtectedRoute allow={['admin', 'super_admin']}>
             <AdminLayout />
           </ProtectedRoute>
         }>

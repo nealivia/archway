@@ -81,7 +81,7 @@ router.post('/login', (req, res) => {
   res.json({
     success: true,
     token,
-    user: { id: user.id, username: user.username, email: user.email, role: user.role }
+    user: { id: user.id, username: user.username, email: user.email, role: user.role, store_id: user.store_id }
   });
 });
 
@@ -136,7 +136,7 @@ router.post('/2fa/verify-login', (req, res) => {
   res.json({
     success: true,
     token,
-    user: { id: user.id, username: user.username, email: user.email, role: user.role }
+    user: { id: user.id, username: user.username, email: user.email, role: user.role, store_id: user.store_id }
   });
 });
 
@@ -208,7 +208,7 @@ router.post('/2fa/disable', authenticateToken, (req, res) => {
 
 // ─── 取得當前使用者資訊 ──────────────────────────────────────────────────────
 router.get('/me', authenticateToken, (req, res) => {
-  const user = db.prepare('SELECT id, username, email, role, totp_enabled FROM users WHERE id = ?').get(req.user.id);
+  const user = db.prepare('SELECT id, username, email, role, store_id, totp_enabled FROM users WHERE id = ?').get(req.user.id);
   res.json({ success: true, user });
 });
 

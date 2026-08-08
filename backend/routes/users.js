@@ -6,13 +6,17 @@ const { authenticateToken, requireSuperAdmin } = require('../middleware/auth');
 
 // 取得所有用戶（僅超級管理員）
 router.get('/', authenticateToken, requireSuperAdmin, (req, res) => {
-  const users = db.prepare('SELECT id, username, email, role, is_active, created_at FROM users ORDER BY created_at DESC').all();
+  const users = db.prepare(`
+    SELECT u.id, u.username, u.email, u.role, u.store_id, s.name AS store_name, u.is_active, u.created_at
+    FROM users u LEFT JOIN stores s ON s.id = u.store_id
+    ORDER BY u.created_at DESC
+  `).all();
   res.json({ success: true, data: users });
 });
 
 // 新增用戶（僅超級管理員）
 router.post('/', authenticateToken, requireSuperAdmin, (req, res) => {
-  const { username, email, password, role } = req.body;
+  const { username, email, password, role, store_id } = req.body;
 
   if (!username || !email || !password) {
     return res.status(400).json({ success: false, message: '帳號、信箱、密碼為必填' });
@@ -20,8 +24,11 @@ router.post('/', authenticateToken, requireSuperAdmin, (req, res) => {
   if (password.length < 8) {
     return res.status(400).json({ success: false, message: '密碼至少需要 8 個字元' });
   }
-  if (!['admin', 'super_admin'].includes(role)) {
+  if (!['admin', 'super_admin', 'store'].includes(role)) {
     return res.status(400).json({ success: false, message: '無效的角色' });
+  }
+  if (role === 'store' && !store_id) {
+    return res.status(400).json({ success: false, message: '分店角色需指定所屬分店' });
   }
 
   const existing = db.prepare('SELECT id FROM users WHERE username = ? OR email = ?').get(username, email);
@@ -31,8 +38,8 @@ router.post('/', authenticateToken, requireSuperAdmin, (req, res) => {
 
   const hash = bcrypt.hashSync(password, 10);
   const result = db.prepare(
-    'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)'
-  ).run(username, email, hash, role || 'admin');
+    'INSERT INTO users (username, email, password_hash, role, store_id) VALUES (?, ?, ?, ?, ?)'
+  ).run(username, email, hash, role || 'admin', role === 'store' ? store_id : null);
 
   db.prepare('INSERT INTO activity_log (user_id, action, target_type, target_id, detail) VALUES (?, ?, ?, ?, ?)').run(
     req.user.id, 'CREATE', 'user', result.lastInsertRowid, `新增用戶: ${username}`
@@ -43,7 +50,7 @@ router.post('/', authenticateToken, requireSuperAdmin, (req, res) => {
 
 // 更新用戶（僅超級管理員）
 router.put('/:id', authenticateToken, requireSuperAdmin, (req, res) => {
-  const { email, role, is_active, password } = req.body;
+  const { email, role, is_active, password, store_id } = req.body;
   const userId = req.params.id;
 
   // 不允許停用自己
@@ -54,6 +61,11 @@ router.put('/:id', authenticateToken, requireSuperAdmin, (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
   if (!user) return res.status(404).json({ success: false, message: '用戶不存在' });
 
+  const nextRole = role || user.role;
+  if (nextRole === 'store' && !(store_id || user.store_id)) {
+    return res.status(400).json({ success: false, message: '分店角色需指定所屬分店' });
+  }
+
   let passwordHash = user.password_hash;
   if (password) {
     if (password.length < 8) return res.status(400).json({ success: false, message: '密碼至少需要 8 個字元' });
@@ -61,9 +73,16 @@ router.put('/:id', authenticateToken, requireSuperAdmin, (req, res) => {
   }
 
   db.prepare(`
-    UPDATE users SET email = ?, role = ?, is_active = ?, password_hash = ?, updated_at = datetime('now')
+    UPDATE users SET email = ?, role = ?, store_id = ?, is_active = ?, password_hash = ?, updated_at = datetime('now')
     WHERE id = ?
-  `).run(email || user.email, role || user.role, is_active !== undefined ? (is_active ? 1 : 0) : user.is_active, passwordHash, userId);
+  `).run(
+    email || user.email,
+    nextRole,
+    nextRole === 'store' ? (store_id || user.store_id) : null,
+    is_active !== undefined ? (is_active ? 1 : 0) : user.is_active,
+    passwordHash,
+    userId
+  );
 
   res.json({ success: true, message: '用戶更新成功' });
 });

@@ -1,16 +1,25 @@
 const express = require('express');
 const router = express.Router();
 const { db } = require('../database');
+const { authenticateToken } = require('../middleware/auth');
 
-// ── 分店身分（簡易版）──────────────────────────────────────────────
-// 佈告欄是內部工具，不走 JWT 帳號系統。前端會在寫入類請求的
-// Header 帶上 X-Store-Id（對應 stores 表的 id），代表目前操作者所屬分店。
-// 這不是密碼保護，只是標示「這筆資料屬於哪一店」，並限制
-// 「只能編輯/刪除自己分店建立的資料」。
+// ── 佈告欄需要登入 ──────────────────────────────────────────────────
+// 只有 store / admin / super_admin 三種角色的帳號能存取。
+router.use(authenticateToken);
+
+// ── 分店身分 ────────────────────────────────────────────────────────
+// role = store 的帳號，身分固定為自己帳號綁定的 store_id（不可竄改）。
+// role = admin / super_admin（總部人員）可用 Header X-Store-Id 代表操作某分店。
+function resolveStoreId(req) {
+  if (req.user.role === 'store') return req.user.store_id;
+  const hdr = parseInt(req.header('X-Store-Id'), 10);
+  return hdr || null;
+}
+
 function requireStore(req, res, next) {
-  const storeId = parseInt(req.header('X-Store-Id'), 10);
+  const storeId = resolveStoreId(req);
   if (!storeId) {
-    return res.status(400).json({ success: false, message: '缺少分店身分（X-Store-Id）' });
+    return res.status(400).json({ success: false, message: '缺少分店身分' });
   }
   const store = db.prepare('SELECT id FROM stores WHERE id = ?').get(storeId);
   if (!store) {
@@ -53,25 +62,26 @@ router.get('/deliveries', (req, res) => {
 });
 
 router.post('/deliveries', requireStore, (req, res) => {
-  const { delivery_time, location, content, status } = req.body;
+  const { delivery_time, location, content, status, customer_name, customer_contact } = req.body;
   if (!delivery_time || !location) {
     return res.status(400).json({ success: false, message: '配送時間與地點為必填' });
   }
   const info = db.prepare(`
-    INSERT INTO board_deliveries (store_id, delivery_time, location, content, status)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(req.storeId, delivery_time, location, content || '', status || '待配送');
+    INSERT INTO board_deliveries (store_id, delivery_time, location, content, status, customer_name, customer_contact)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(req.storeId, delivery_time, location, content || '', status || '待配送', customer_name || '', customer_contact || '');
   res.status(201).json({ success: true, id: info.lastInsertRowid });
 });
 
 router.put('/deliveries/:id', requireStore,
   ownerOnly(req => db.prepare('SELECT * FROM board_deliveries WHERE id = ?').get(req.params.id)),
   (req, res) => {
-    const { delivery_time, location, content, status } = req.body;
+    const { delivery_time, location, content, status, customer_name, customer_contact } = req.body;
     db.prepare(`
-      UPDATE board_deliveries SET delivery_time = ?, location = ?, content = ?, status = ?, updated_at = datetime('now')
+      UPDATE board_deliveries SET delivery_time = ?, location = ?, content = ?, status = ?,
+        customer_name = ?, customer_contact = ?, updated_at = datetime('now')
       WHERE id = ?
-    `).run(delivery_time, location, content || '', status || '待配送', req.params.id);
+    `).run(delivery_time, location, content || '', status || '待配送', customer_name || '', customer_contact || '', req.params.id);
     res.json({ success: true, message: '已更新' });
   });
 

@@ -17,7 +17,7 @@ function authenticateToken(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = db.prepare('SELECT id, username, email, role, is_active FROM users WHERE id = ?').get(decoded.id);
+    const user = db.prepare('SELECT id, username, email, role, store_id, is_active FROM users WHERE id = ?').get(decoded.id);
 
     if (!user || !user.is_active) {
       return res.status(401).json({ success: false, message: '帳號不存在或已停用' });
