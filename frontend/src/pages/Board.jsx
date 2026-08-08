@@ -198,6 +198,7 @@ function DeliveriesTab({ storeId, stores }) {
 
   const cycleStatus = async (item) => {
     const next = DELIVERY_STATUSES[(DELIVERY_STATUSES.indexOf(item.status) + 1) % DELIVERY_STATUSES.length]
+    if (!confirm(`確定要將狀態從「${item.status}」改成「${next}」嗎？`)) return
     try {
       await api.put(`/board/deliveries/${item.id}`, { ...item, status: next }, withStore(storeId))
       load()
@@ -416,6 +417,7 @@ function StockTab({ storeId, stores }) {
 
   const cycleStatus = async (item) => {
     const next = STOCK_STATUSES[(STOCK_STATUSES.indexOf(item.status) + 1) % STOCK_STATUSES.length]
+    if (!confirm(`確定要將狀態從「${item.status}」改成「${next}」嗎？`)) return
     try {
       await api.put(`/board/stock/${item.id}`, { ...item, status: next }, withStore(storeId))
       load()
@@ -581,18 +583,22 @@ function HistoryTab({ stores }) {
     if (to) params.to = `${to} 23:59:59`
 
     try {
-      const [deliveries, stock, comments] = await Promise.all([
+      const [deliveries, stock, comments, statusLog] = await Promise.all([
         api.get('/board/deliveries', { params }),
         api.get('/board/stock', { params }),
-        api.get('/board/comments', { params })
+        api.get('/board/comments', { params }),
+        api.get('/board/status-log', { params })
       ])
+      const typeLabel = { delivery: '配送單', stock: '缺訂貨' }
       const rows = [
         ...(deliveries.data || []).map(i => ({ type: '配送單', color: 'bg-blue-500', time: i.delivery_time, store: i.store_name,
           text: `📍 ${i.location} — ${i.status}${(i.customer_name || i.customer_contact) ? `\n👤 ${i.customer_name}${i.customer_contact ? '｜' + i.customer_contact : ''}` : ''}${i.content ? '\n' + i.content : ''}` })),
         ...(stock.data || []).map(i => ({ type: '缺訂貨', color: 'bg-amber-500', time: i.updated_at, store: i.store_name,
           text: `🧾 ${i.item_name} — ${i.status}${i.note ? '\n備註：' + i.note : ''}` })),
         ...(comments.data || []).map(i => ({ type: '留言', color: 'bg-green-500', time: i.created_at, store: i.store_name,
-          text: i.message }))
+          text: i.message })),
+        ...(statusLog.data || []).map(i => ({ type: '狀態變更', color: 'bg-purple-500', time: i.created_at, store: i.store_name,
+          text: `${typeLabel[i.resource_type] || i.resource_type}狀態：${i.from_status || '（新建立）'} → ${i.to_status}（操作人：${i.changed_by}）` }))
       ].sort((a, b) => new Date(b.time.replace(' ', 'T')) - new Date(a.time.replace(' ', 'T')))
       setMerged(rows)
     } catch (err) { toast.error(err.message || '查詢失敗') }

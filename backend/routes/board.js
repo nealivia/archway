@@ -42,23 +42,35 @@ function ownerOnly(getRow) {
     if (row.store_id !== req.storeId) {
       return res.status(403).json({ success: false, message: '只能編輯或刪除自己分店建立的資料' });
     }
+    req.resource = row; // 供後續 handler 取用（例如比對狀態是否有變更）
     next();
   };
 }
 
-function buildFilter(req, timeColumn) {
+// 狀態有變更時寫入變更紀錄（配送單 / 缺訂貨狀態共用）
+function logStatusChange(req, type, resourceId, fromStatus, toStatus) {
+  if (fromStatus === toStatus) return;
+  db.prepare(`
+    INSERT INTO board_status_log (resource_type, resource_id, store_id, from_status, to_status, changed_by)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(type, resourceId, req.storeId, fromStatus, toStatus, req.user.username);
+}
+
+// alias：資料表在 SQL 裡的別名（例如 'd'、'c'、'l'）。stores 表本身也有 created_at 欄位，
+// 不加別名前綴的話跟 JOIN 進來的 stores.created_at 會產生「ambiguous column name」錯誤。
+function buildFilter(req, alias, timeColumn) {
   const { store, from, to } = req.query;
   let sql = ' WHERE 1=1';
   const params = [];
-  if (store) { sql += ' AND store_id = ?'; params.push(store); }
-  if (from) { sql += ` AND ${timeColumn} >= ?`; params.push(from); }
-  if (to) { sql += ` AND ${timeColumn} <= ?`; params.push(to); }
+  if (store) { sql += ` AND ${alias}.store_id = ?`; params.push(store); }
+  if (from) { sql += ` AND ${alias}.${timeColumn} >= ?`; params.push(from); }
+  if (to) { sql += ` AND ${alias}.${timeColumn} <= ?`; params.push(to); }
   return { sql, params };
 }
 
 // ================= 配送單 =================
 router.get('/deliveries', (req, res) => {
-  const { sql, params } = buildFilter(req, 'delivery_time');
+  const { sql, params } = buildFilter(req, 'd', 'delivery_time');
   const rows = db.prepare(`
     SELECT d.*, s.name AS store_name FROM board_deliveries d
     JOIN stores s ON s.id = d.store_id
@@ -83,11 +95,13 @@ router.put('/deliveries/:id', requireStore,
   ownerOnly(req => db.prepare('SELECT * FROM board_deliveries WHERE id = ?').get(req.params.id)),
   (req, res) => {
     const { delivery_time, location, content, status, customer_name, customer_contact } = req.body;
+    const newStatus = status || '待配送';
     db.prepare(`
       UPDATE board_deliveries SET delivery_time = ?, location = ?, content = ?, status = ?,
         customer_name = ?, customer_contact = ?, updated_at = datetime('now')
       WHERE id = ?
-    `).run(delivery_time, location, content || '', status || '待配送', customer_name || '', customer_contact || '', req.params.id);
+    `).run(delivery_time, location, content || '', newStatus, customer_name || '', customer_contact || '', req.params.id);
+    logStatusChange(req, 'delivery', req.params.id, req.resource.status, newStatus);
     res.json({ success: true, message: '已更新' });
   });
 
@@ -100,7 +114,7 @@ router.delete('/deliveries/:id', requireStore,
 
 // ================= 缺訂貨狀態 =================
 router.get('/stock', (req, res) => {
-  const { sql, params } = buildFilter(req, 'updated_at');
+  const { sql, params } = buildFilter(req, 'd', 'updated_at');
   const rows = db.prepare(`
     SELECT d.*, s.name AS store_name FROM board_stock d
     JOIN stores s ON s.id = d.store_id
@@ -129,6 +143,7 @@ router.put('/stock/:id', requireStore,
       UPDATE board_stock SET item_name = ?, status = ?, note = ?, updated_at = datetime('now')
       WHERE id = ?
     `).run(item_name, status, note || '', req.params.id);
+    logStatusChange(req, 'stock', req.params.id, req.resource.status, status);
     res.json({ success: true, message: '已更新' });
   });
 
@@ -141,7 +156,7 @@ router.delete('/stock/:id', requireStore,
 
 // ================= 留言板 =================
 router.get('/comments', (req, res) => {
-  const { sql, params } = buildFilter(req, 'created_at');
+  const { sql, params } = buildFilter(req, 'c', 'created_at');
   const rows = db.prepare(`
     SELECT c.*, s.name AS store_name FROM board_comments c
     JOIN stores s ON s.id = c.store_id
@@ -166,5 +181,16 @@ router.delete('/comments/:id', requireStore,
     db.prepare('DELETE FROM board_comments WHERE id = ?').run(req.params.id);
     res.json({ success: true, message: '已刪除' });
   });
+
+// ================= 狀態變更紀錄 =================
+router.get('/status-log', (req, res) => {
+  const { sql, params } = buildFilter(req, 'l', 'created_at');
+  const rows = db.prepare(`
+    SELECT l.*, s.name AS store_name FROM board_status_log l
+    JOIN stores s ON s.id = l.store_id
+    ${sql} ORDER BY created_at DESC
+  `).all(...params);
+  res.json({ success: true, data: rows });
+});
 
 module.exports = router;
