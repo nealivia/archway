@@ -4,12 +4,18 @@ const { db } = require('../database');
 const { authenticateToken } = require('../middleware/auth');
 
 // ── 佈告欄需要登入 ──────────────────────────────────────────────────
-// 只有 store / admin / super_admin 三種角色的帳號能存取。
+// 只有 store（各分店）與 super_admin（超級管理員）能存取，一般管理員（admin）不可進入。
 router.use(authenticateToken);
+router.use((req, res, next) => {
+  if (req.user.role !== 'store' && req.user.role !== 'super_admin') {
+    return res.status(403).json({ success: false, message: '沒有權限存取電子佈告欄' });
+  }
+  next();
+});
 
 // ── 分店身分 ────────────────────────────────────────────────────────
 // role = store 的帳號，身分固定為自己帳號綁定的 store_id（不可竄改）。
-// role = admin / super_admin（總部人員）可用 Header X-Store-Id 代表操作某分店。
+// role = super_admin（總部人員）可用 Header X-Store-Id 代表操作某分店。
 function resolveStoreId(req) {
   if (req.user.role === 'store') return req.user.store_id;
   const hdr = parseInt(req.header('X-Store-Id'), 10);

@@ -78,7 +78,7 @@ export default function App() {
           </Route>
           {/* 分店佈告欄：內部工具，維護模式下仍可使用，需登入 */}
           <Route path="/board" element={
-            <ProtectedRoute allow={['store', 'admin', 'super_admin']}>
+            <ProtectedRoute allow={['store', 'super_admin']}>
               <Board />
             </ProtectedRoute>
           } />
@@ -104,7 +104,7 @@ export default function App() {
         <Route path="/support" element={<TechSupport />} />
         {/* 分店電子佈告欄：隱藏頁面，不放進 Navbar 導覽列，需登入 */}
         <Route path="/board" element={
-          <ProtectedRoute allow={['store', 'admin', 'super_admin']}>
+          <ProtectedRoute allow={['store', 'super_admin']}>
             <Board />
           </ProtectedRoute>
         } />
