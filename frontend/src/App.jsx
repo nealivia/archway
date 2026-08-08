@@ -21,6 +21,7 @@ import Maintenance from './pages/Maintenance'
 import Compare from './pages/Compare'
 import TechSupport from './pages/TechSupport'
 import Board from './pages/Board'
+import BoardLogin from './pages/BoardLogin'
 
 // 後台頁面
 import AdminLogin from './pages/admin/Login'
@@ -76,9 +77,10 @@ export default function App() {
             <Route path="settings" element={<AccountSettings />} />
             <Route path="users" element={<UsersAdmin />} />
           </Route>
-          {/* 分店佈告欄：內部工具，維護模式下仍可使用，需登入 */}
+          {/* 分店佈告欄：內部工具，維護模式下仍可使用，需登入（獨立登入頁） */}
+          <Route path="/board/login" element={<BoardLogin />} />
           <Route path="/board" element={
-            <ProtectedRoute allow={['store', 'super_admin']}>
+            <ProtectedRoute allow={['store', 'super_admin']} loginPath="/board/login">
               <Board />
             </ProtectedRoute>
           } />
@@ -102,9 +104,10 @@ export default function App() {
         <Route path="/about" element={<About />} />
         <Route path="/compare" element={<Compare />} />
         <Route path="/support" element={<TechSupport />} />
-        {/* 分店電子佈告欄：隱藏頁面，不放進 Navbar 導覽列，需登入 */}
+        {/* 分店電子佈告欄：隱藏頁面，不放進 Navbar 導覽列，需登入（獨立登入頁） */}
+        <Route path="/board/login" element={<BoardLogin />} />
         <Route path="/board" element={
-          <ProtectedRoute allow={['store', 'super_admin']}>
+          <ProtectedRoute allow={['store', 'super_admin']} loginPath="/board/login">
             <Board />
           </ProtectedRoute>
         } />

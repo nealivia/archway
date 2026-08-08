@@ -19,7 +19,7 @@ api.interceptors.response.use(
     if (err.response?.status === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
-      window.location.href = '/admin/login'
+      window.location.href = window.location.pathname.startsWith('/board') ? '/board/login' : '/admin/login'
     }
     return Promise.reject(err.response?.data || err)
   }
