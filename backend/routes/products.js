@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { db } = require('../database');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 // 公開 - 取得所有上架商品
 router.get('/', (req, res) => {
@@ -97,7 +97,7 @@ router.get('/:id', (req, res) => {
 });
 
 // 後台 - 取得所有商品（含下架）
-router.get('/admin/all', authenticateToken, (req, res) => {
+router.get('/admin/all', authenticateToken, requireAdmin, (req, res) => {
   const { category_id, search, page = 1, limit = 20 } = req.query;
   const offset = (page - 1) * limit;
 
@@ -140,7 +140,7 @@ router.get('/admin/all', authenticateToken, (req, res) => {
 });
 
 // 後台 - 新增商品
-router.post('/', authenticateToken, (req, res) => {
+router.post('/', authenticateToken, requireAdmin, (req, res) => {
   const { name, category_id, short_desc, description, features, applications, shopee_url, images, datasheet_url, installation_url, reports, youtube_url, colors, is_active, is_featured, price, prices, sort_order } = req.body;
 
   if (!name) {
@@ -181,7 +181,7 @@ router.post('/', authenticateToken, (req, res) => {
 });
 
 // 後台 - 更新商品
-router.put('/:id', authenticateToken, (req, res) => {
+router.put('/:id', authenticateToken, requireAdmin, (req, res) => {
   const { name, category_id, short_desc, description, features, applications, shopee_url, images, datasheet_url, installation_url, reports, youtube_url, colors, is_active, is_featured, price, prices, sort_order } = req.body;
 
   const existing = db.prepare('SELECT id, is_featured FROM products WHERE id = ?').get(req.params.id);
@@ -231,7 +231,7 @@ router.put('/:id', authenticateToken, (req, res) => {
 });
 
 // 後台 - 刪除商品
-router.delete('/:id', authenticateToken, (req, res) => {
+router.delete('/:id', authenticateToken, requireAdmin, (req, res) => {
   const existing = db.prepare('SELECT id, name FROM products WHERE id = ?').get(req.params.id);
   if (!existing) {
     return res.status(404).json({ success: false, message: '商品不存在' });

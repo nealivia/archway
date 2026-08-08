@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { db } = require('../database');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 // 公開 - 取得上架中門市（排序）
 router.get('/', (req, res) => {
@@ -10,13 +10,13 @@ router.get('/', (req, res) => {
 });
 
 // 後台 - 取得全部門市（含下架）
-router.get('/all', authenticateToken, (req, res) => {
+router.get('/all', authenticateToken, requireAdmin, (req, res) => {
   const stores = db.prepare('SELECT * FROM stores ORDER BY sort_order ASC, id ASC').all();
   res.json({ success: true, data: stores });
 });
 
 // 後台 - 新增門市
-router.post('/', authenticateToken, (req, res) => {
+router.post('/', authenticateToken, requireAdmin, (req, res) => {
   const { name, address, phone, hours, sort_order, is_active } = req.body;
   if (!name) return res.status(400).json({ success: false, message: '門市名稱為必填' });
 
@@ -28,7 +28,7 @@ router.post('/', authenticateToken, (req, res) => {
 });
 
 // 後台 - 更新門市
-router.put('/:id', authenticateToken, (req, res) => {
+router.put('/:id', authenticateToken, requireAdmin, (req, res) => {
   const { name, address, phone, hours, sort_order, is_active } = req.body;
   if (!name) return res.status(400).json({ success: false, message: '門市名稱為必填' });
 
@@ -40,7 +40,7 @@ router.put('/:id', authenticateToken, (req, res) => {
 });
 
 // 後台 - 刪除門市
-router.delete('/:id', authenticateToken, (req, res) => {
+router.delete('/:id', authenticateToken, requireAdmin, (req, res) => {
   db.prepare('DELETE FROM stores WHERE id = ?').run(req.params.id);
   res.json({ success: true, message: '門市已刪除' });
 });
