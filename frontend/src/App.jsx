@@ -20,6 +20,7 @@ import About from './pages/About'
 import Maintenance from './pages/Maintenance'
 import Compare from './pages/Compare'
 import TechSupport from './pages/TechSupport'
+import Board from './pages/Board'
 
 // 後台頁面
 import AdminLogin from './pages/admin/Login'
@@ -75,6 +76,8 @@ export default function App() {
             <Route path="settings" element={<AccountSettings />} />
             <Route path="users" element={<UsersAdmin />} />
           </Route>
+          {/* 分店佈告欄：內部工具，維護模式下仍可使用 */}
+          <Route path="/board" element={<Board />} />
           <Route path="*" element={<Maintenance />} />
         </Routes>
       </AuthProvider>
@@ -95,6 +98,8 @@ export default function App() {
         <Route path="/about" element={<About />} />
         <Route path="/compare" element={<Compare />} />
         <Route path="/support" element={<TechSupport />} />
+        {/* 分店電子佈告欄：隱藏頁面，不放進 Navbar 導覽列 */}
+        <Route path="/board" element={<Board />} />
 
         {/* 後台路由 */}
         <Route path="/admin/login" element={<AdminLogin />} />
