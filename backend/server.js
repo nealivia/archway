@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { initDatabase } = require('./database');
+const { initDatabase, cleanupOldBoardRecords } = require('./database');
 
 // ── JWT_SECRET 強度驗證（啟動時檢查）────────────────────────────────────────
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -55,6 +55,9 @@ const loginLimiter = createRateLimiter({
 
 // 初始化資料庫
 initDatabase();
+
+// 佈告欄歷史紀錄只保留一個月：每 24 小時自動清一次超過期限的資料
+setInterval(cleanupOldBoardRecords, 24 * 60 * 60 * 1000).unref();
 
 // Middleware
 app.use(cors());

@@ -255,7 +255,28 @@ function initDatabase() {
     db.prepare("INSERT INTO settings (key, value) VALUES ('maintenance_mode', 'false')").run();
   }
 
+  cleanupOldBoardRecords();
+
   console.log('✅ 資料庫初始化完成');
 }
 
-module.exports = { db, initDatabase };
+// 佈告欄歷史紀錄只保留一個月，超過的自動刪除（配送單依配送日期、缺訂貨依更新時間、
+// 留言與狀態變更紀錄依建立時間）。伺服器啟動時執行一次，另外由 server.js 排程每天執行一次。
+function cleanupOldBoardRecords() {
+  try {
+    const results = {
+      deliveries: db.prepare(`DELETE FROM board_deliveries WHERE date(delivery_time) < date('now', '-30 days')`).run(),
+      stock: db.prepare(`DELETE FROM board_stock WHERE date(updated_at) < date('now', '-30 days')`).run(),
+      comments: db.prepare(`DELETE FROM board_comments WHERE date(created_at) < date('now', '-30 days')`).run(),
+      statusLog: db.prepare(`DELETE FROM board_status_log WHERE date(created_at) < date('now', '-30 days')`).run()
+    };
+    const total = results.deliveries.changes + results.stock.changes + results.comments.changes + results.statusLog.changes;
+    if (total > 0) {
+      console.log(`🧹 已清除 ${total} 筆超過一個月的佈告欄歷史紀錄`);
+    }
+  } catch (e) {
+    console.error('❌ 清除佈告欄舊紀錄失敗:', e.message);
+  }
+}
+
+module.exports = { db, initDatabase, cleanupOldBoardRecords };
