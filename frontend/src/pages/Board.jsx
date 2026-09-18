@@ -68,6 +68,26 @@ function withStore(storeId) {
   return { headers: { 'X-Store-Id': storeId } }
 }
 
+// 定時重新拉取最新資料：分頁在背景（切走分頁/螢幕鎖住）時暫停，省流量與電力；
+// 回到前景時立刻拉一次最新資料，再繼續照間隔輪詢。
+function usePollingRefresh(load, intervalMs = 10000) {
+  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    let timer = null
+    const start = () => { if (!timer) timer = setInterval(load, intervalMs) }
+    const stop = () => { if (timer) clearInterval(timer); timer = null }
+    const onVisibilityChange = () => {
+      if (document.hidden) { stop() } else { load(); start() }
+    }
+    if (!document.hidden) start()
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      stop()
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [load, intervalMs])
+}
+
 export default function Board() {
   const { user, logout } = useAuth()
   const isStoreAccount = user?.role === 'store'
@@ -160,11 +180,7 @@ function DeliveriesTab({ storeId, stores }) {
     api.get('/board/deliveries').then(r => setList(r.data || [])).catch(() => toast.error('載入失敗'))
   }, [])
 
-  useEffect(() => { load() }, [load])
-  useEffect(() => {
-    const t = setInterval(load, 20000)
-    return () => clearInterval(t)
-  }, [load])
+  usePollingRefresh(load)
 
   const visibleList = filterStore ? list.filter(i => String(i.store_id) === String(filterStore)) : list
 
@@ -435,11 +451,7 @@ function StockTab({ storeId, stores }) {
     api.get('/board/stock', { params }).then(r => setList(r.data || [])).catch(() => toast.error('載入失敗'))
   }, [filterStore])
 
-  useEffect(() => { load() }, [load])
-  useEffect(() => {
-    const t = setInterval(load, 20000)
-    return () => clearInterval(t)
-  }, [load])
+  usePollingRefresh(load)
 
   const submit = async (e) => {
     e.preventDefault()
@@ -566,11 +578,7 @@ function CommentsTab({ storeId }) {
     api.get('/board/comments').then(r => setList(r.data || [])).catch(() => toast.error('載入失敗'))
   }, [])
 
-  useEffect(() => { load() }, [load])
-  useEffect(() => {
-    const t = setInterval(load, 20000)
-    return () => clearInterval(t)
-  }, [load])
+  usePollingRefresh(load)
 
   const submit = async (e) => {
     e.preventDefault()
