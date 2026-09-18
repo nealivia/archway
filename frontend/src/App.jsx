@@ -80,7 +80,7 @@ export default function App() {
           {/* 分店佈告欄：內部工具，維護模式下仍可使用，需登入（獨立登入頁） */}
           <Route path="/board/login" element={<BoardLogin />} />
           <Route path="/board" element={
-            <ProtectedRoute allow={['store', 'super_admin']} loginPath="/board/login">
+            <ProtectedRoute allow={['store', 'driver', 'super_admin']} loginPath="/board/login">
               <Board />
             </ProtectedRoute>
           } />

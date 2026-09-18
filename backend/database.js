@@ -16,7 +16,7 @@ function initDatabase() {
       username TEXT NOT NULL UNIQUE,
       email TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
-      role TEXT NOT NULL DEFAULT 'admin' CHECK(role IN ('super_admin', 'admin', 'store')),
+      role TEXT NOT NULL DEFAULT 'admin' CHECK(role IN ('super_admin', 'admin', 'store', 'driver')),
       store_id INTEGER REFERENCES stores(id) ON DELETE SET NULL,
       is_active INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -154,6 +154,38 @@ function initDatabase() {
     console.error('❌ users 表升級失敗:', e.message);
   }
 
+  // users 表升級：加入 driver（司機）角色，只能切換配送狀態，不能改內容、不綁定分店
+  try {
+    const usersSchema2 = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").get();
+    if (usersSchema2 && !usersSchema2.sql.includes("'driver'")) {
+      db.exec('PRAGMA foreign_keys = OFF');
+      db.exec(`
+        CREATE TABLE users_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          username TEXT NOT NULL UNIQUE,
+          email TEXT NOT NULL UNIQUE,
+          password_hash TEXT NOT NULL,
+          role TEXT NOT NULL DEFAULT 'admin' CHECK(role IN ('super_admin', 'admin', 'store', 'driver')),
+          store_id INTEGER REFERENCES stores(id) ON DELETE SET NULL,
+          is_active INTEGER NOT NULL DEFAULT 1,
+          totp_secret TEXT DEFAULT NULL,
+          totp_enabled INTEGER DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        INSERT INTO users_new (id, username, email, password_hash, role, store_id, is_active, totp_secret, totp_enabled, created_at, updated_at)
+          SELECT id, username, email, password_hash, role, store_id, is_active, totp_secret, totp_enabled, created_at, updated_at FROM users;
+        DROP TABLE users;
+        ALTER TABLE users_new RENAME TO users;
+      `);
+      db.exec('PRAGMA foreign_keys = ON');
+      console.log('✅ users 表已升級（新增 driver 司機角色）');
+    }
+  } catch (e) {
+    db.exec('PRAGMA foreign_keys = ON');
+    console.error('❌ users 表升級失敗（driver 角色）:', e.message);
+  }
+
   // 分店電子佈告欄
   db.exec(`
     CREATE TABLE IF NOT EXISTS board_deliveries (
@@ -250,6 +282,25 @@ function initDatabase() {
       console.log('╚══════════════════════════════════════╝');
       console.log('');
     }
+  }
+
+  // 初始化司機帳號（全公司只有一位司機，只建立一次；不綁定分店，只能切換配送狀態，不能改內容或刪除）
+  const driverExists = db.prepare("SELECT id FROM users WHERE role = 'driver'").get();
+  if (!driverExists) {
+    const driverUsername = 'driver';
+    const driverPassword = require('crypto').randomBytes(9).toString('base64url');
+    const driverHash = bcrypt.hashSync(driverPassword, 10);
+    db.prepare(`
+      INSERT INTO users (username, email, password_hash, role, store_id)
+      VALUES (?, ?, ?, 'driver', NULL)
+    `).run(driverUsername, `${driverUsername}@archway.local`, driverHash);
+    console.log('');
+    console.log('╔══════════════════════════════════════╗');
+    console.log('║        🚚 司機帳號已建立             ║');
+    console.log(`║  帳號：${driverUsername.padEnd(30)}║`);
+    console.log(`║  密碼：${driverPassword.padEnd(30)}║`);
+    console.log('╚══════════════════════════════════════╝');
+    console.log('');
   }
 
   // FAQ 表

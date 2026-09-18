@@ -24,7 +24,7 @@ router.post('/', authenticateToken, requireSuperAdmin, (req, res) => {
   if (password.length < 8) {
     return res.status(400).json({ success: false, message: '密碼至少需要 8 個字元' });
   }
-  if (!['admin', 'super_admin', 'store'].includes(role)) {
+  if (!['admin', 'super_admin', 'store', 'driver'].includes(role)) {
     return res.status(400).json({ success: false, message: '無效的角色' });
   }
   if (role === 'store' && !store_id) {
@@ -62,6 +62,9 @@ router.put('/:id', authenticateToken, requireSuperAdmin, (req, res) => {
   if (!user) return res.status(404).json({ success: false, message: '用戶不存在' });
 
   const nextRole = role || user.role;
+  if (role && !['admin', 'super_admin', 'store', 'driver'].includes(role)) {
+    return res.status(400).json({ success: false, message: '無效的角色' });
+  }
   if (nextRole === 'store' && !(store_id || user.store_id)) {
     return res.status(400).json({ success: false, message: '分店角色需指定所屬分店' });
   }

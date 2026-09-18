@@ -4,10 +4,10 @@ const { db } = require('../database');
 const { authenticateToken } = require('../middleware/auth');
 
 // ── 佈告欄需要登入 ──────────────────────────────────────────────────
-// 只有 store（各分店）與 super_admin（超級管理員）能存取，一般管理員（admin）不可進入。
+// store（各分店）、driver（司機，只能切換配送狀態）、super_admin（超級管理員）能存取，一般管理員（admin）不可進入。
 router.use(authenticateToken);
 router.use((req, res, next) => {
-  if (req.user.role !== 'store' && req.user.role !== 'super_admin') {
+  if (!['store', 'driver', 'super_admin'].includes(req.user.role)) {
     return res.status(403).json({ success: false, message: '沒有權限存取電子佈告欄' });
   }
   next();
@@ -16,8 +16,11 @@ router.use((req, res, next) => {
 // ── 分店身分 ────────────────────────────────────────────────────────
 // role = store 的帳號，身分固定為自己帳號綁定的 store_id（不可竄改）。
 // role = super_admin（總部人員）可用 Header X-Store-Id 代表操作某分店。
+// role = driver（司機）不綁定任何分店，一律回傳 null——這樣所有「需要分店身分」的動作
+// （新增/編輯/刪除配送單、缺訂貨、留言）司機都做不了，只留下切換配送狀態這一項特例。
 function resolveStoreId(req) {
   if (req.user.role === 'store') return req.user.store_id;
+  if (req.user.role === 'driver') return null;
   const hdr = parseInt(req.header('X-Store-Id'), 10);
   return hdr || null;
 }
@@ -32,6 +35,13 @@ function requireStore(req, res, next) {
     return res.status(400).json({ success: false, message: '找不到這個分店' });
   }
   req.storeId = storeId;
+  next();
+}
+
+// 跟 requireStore 不同：不會因為沒有分店身分就擋下來（司機沒有分店，但還是要能呼叫配送單的
+// PUT 路由來切換狀態），只是單純把 storeId 算出來掛在 req 上，算不出來就是 null。
+function attachStoreId(req, res, next) {
+  req.storeId = resolveStoreId(req);
   next();
 }
 
@@ -57,14 +67,15 @@ function logStatusChange(storeId, changedBy, type, resourceId, fromStatus, toSta
   `).run(type, resourceId, storeId, fromStatus, toStatus, changedBy);
 }
 
-// 配送單「更改狀態」的控制權：所有配送都由和平店（總店）統一控制司機排程，所以只有和平店帳號
-// 或超級管理員可以切換配送狀態（待配送/配送中/已送達）；其他分店仍可以編輯或刪除自己送出的配送單內容。
+// 配送單「更改狀態」的控制權：所有配送都由和平店（總店）統一控制司機排程，所以只有和平店帳號、
+// 司機帳號（driver）、或超級管理員可以切換配送狀態（待配送/配送中/已送達）；
+// 其他分店仍可以編輯或刪除自己送出的配送單內容，但一樣不能切換狀態。
 function getControlStoreId() {
   const row = db.prepare("SELECT id FROM stores WHERE name = '和平店'").get();
   return row ? row.id : null;
 }
 function canChangeDeliveryStatus(req) {
-  return req.user.role === 'super_admin' || req.storeId === getControlStoreId();
+  return req.user.role === 'super_admin' || req.user.role === 'driver' || req.storeId === getControlStoreId();
 }
 
 // alias：資料表在 SQL 裡的別名（例如 'd'、'c'、'l'）。stores 表本身也有 created_at 欄位，
@@ -166,7 +177,7 @@ router.put('/deliveries/reorder', (req, res) => {
 // 配送單編輯：內容（地點/客戶資訊/調撥目標等）只有建立的那家分店能改，跟以前一樣；
 // 但「狀態」欄位比較特別——全公司配送都由和平店統一控制司機排程，所以狀態變更只有和平店／超級管理員能做，
 // 就算是和平店要去改別家分店送出的單，也只准動狀態，其他內容一律不能碰。
-router.put('/deliveries/:id', requireStore, (req, res) => {
+router.put('/deliveries/:id', attachStoreId, (req, res) => {
   const row = db.prepare('SELECT * FROM board_deliveries WHERE id = ?').get(req.params.id);
   if (!row) return res.status(404).json({ success: false, message: '找不到資料' });
 

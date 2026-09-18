@@ -106,6 +106,7 @@ export default function UsersAdmin() {
                 <option value="admin">一般管理員</option>
                 <option value="super_admin">超級管理員</option>
                 <option value="store">分店（僅能使用電子佈告欄）</option>
+                <option value="driver">司機（僅能切換配送狀態，不綁定分店）</option>
               </select>
             </div>
 
@@ -166,9 +167,10 @@ export default function UsersAdmin() {
                 <td className="px-4 py-3 text-center">
                   <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                     u.role === 'super_admin' ? 'bg-yellow-100 text-yellow-700' :
-                    u.role === 'store' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+                    u.role === 'store' ? 'bg-blue-100 text-blue-700' :
+                    u.role === 'driver' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-600'
                   }`}>
-                    {u.role === 'super_admin' ? '⭐ 超級管理員' : u.role === 'store' ? `🏬 ${u.store_name || '分店'}` : '管理員'}
+                    {u.role === 'super_admin' ? '⭐ 超級管理員' : u.role === 'store' ? `🏬 ${u.store_name || '分店'}` : u.role === 'driver' ? '🚚 司機' : '管理員'}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-center">

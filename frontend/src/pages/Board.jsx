@@ -181,8 +181,10 @@ function useCrossBoardAlerts(enabled) {
 export default function Board() {
   const { user, logout } = useAuth()
   const isStoreAccount = user?.role === 'store'
+  const isDriver = user?.role === 'driver'
 
   // store 角色：身分固定為自己帳號綁定的分店。admin/super_admin（總部）：可自行切換代操分店。
+  // driver（司機）不綁定分店，不需要選店，也不會有 storeId。
   const [pickedStoreId, setPickedStoreId] = useState(() => localStorage.getItem(STORE_KEY) || '')
   const [stores, setStores] = useState([])
   const [activeTab, setActiveTab] = useState('today')
@@ -193,11 +195,11 @@ export default function Board() {
     api.get('/stores').then(r => setStores(r.data || [])).catch(() => toast.error('分店清單載入失敗'))
   }, [])
 
-  const storeId = isStoreAccount ? String(user.store_id) : pickedStoreId
+  const storeId = isStoreAccount ? String(user.store_id) : (isDriver ? '' : pickedStoreId)
 
-  // 所有配送都由和平店（總店）統一控制司機排程，只有和平店帳號／超級管理員能切換配送狀態
+  // 所有配送都由和平店（總店）統一控制司機排程，只有和平店帳號、司機帳號、或超級管理員能切換配送狀態
   const controlStoreId = stores.find(s => s.name === '和平店')?.id
-  const canChangeDeliveryStatus = user?.role === 'super_admin' || (!!controlStoreId && String(storeId) === String(controlStoreId))
+  const canChangeDeliveryStatus = user?.role === 'super_admin' || isDriver || (!!controlStoreId && String(storeId) === String(controlStoreId))
 
   const chooseStore = (id) => {
     setPickedStoreId(String(id))
@@ -206,9 +208,13 @@ export default function Board() {
 
   const currentStoreName = isStoreAccount
     ? (stores.find(s => String(s.id) === storeId)?.name || user.username)
-    : (stores.find(s => String(s.id) === String(storeId))?.name || '')
+    : isDriver
+      ? `🚚 ${user.username}（司機）`
+      : (stores.find(s => String(s.id) === String(storeId))?.name || '')
 
-  if (!isStoreAccount && !storeId) {
+  const visibleTabs = isDriver ? TABS.filter(t => t.key !== 'stock' && t.key !== 'comments') : TABS
+
+  if (!isStoreAccount && !isDriver && !storeId) {
     return (
       <div className="max-w-sm mx-auto mt-24 px-4">
         <h1 className="text-xl font-bold text-dark mb-1">分店電子佈告欄</h1>
@@ -238,7 +244,7 @@ export default function Board() {
             className={`ml-2 underline text-xs py-1.5 px-0.5 ${notifyEnabled ? 'text-primary' : 'text-gray-400'}`}>
             {notifyEnabled ? '🔔 新資料提醒已開啟' : '🔕 開啟新資料提醒'}
           </button>
-          {!isStoreAccount && (
+          {!isStoreAccount && !isDriver && (
             <button onClick={() => { setPickedStoreId(''); localStorage.removeItem(STORE_KEY) }}
               className="ml-2 text-primary underline text-xs py-1.5 px-0.5">切換分店</button>
           )}
@@ -247,7 +253,7 @@ export default function Board() {
       </div>
 
       <div className="flex gap-1 border-b border-gray-200 mb-5 overflow-x-auto">
-        {TABS.map(t => (
+        {visibleTabs.map(t => (
           <button key={t.key} onClick={() => setActiveTab(t.key)}
             className={`px-4 py-3 text-sm whitespace-nowrap border-b-2 -mb-px transition-colors ${
               activeTab === t.key ? 'border-primary text-primary font-medium' : 'border-transparent text-gray-500 hover:text-dark'
@@ -257,7 +263,7 @@ export default function Board() {
         ))}
       </div>
 
-      {activeTab === 'today' && <TodayOverviewTab stores={stores} />}
+      {activeTab === 'today' && <TodayOverviewTab stores={stores} storeId={storeId} canChangeStatus={canChangeDeliveryStatus} />}
       {activeTab === 'deliveries' && <DeliveriesTab storeId={storeId} stores={stores} canChangeStatus={canChangeDeliveryStatus} />}
       {activeTab === 'stock' && <StockTab storeId={storeId} stores={stores} />}
       {activeTab === 'comments' && <CommentsTab storeId={storeId} />}
@@ -267,7 +273,7 @@ export default function Board() {
 }
 
 // ================= 今日配送總覽（給司機看的整合路線表，合併全分店、依時段/時間排序） =================
-function TodayOverviewTab({ stores }) {
+function TodayOverviewTab({ stores, storeId, canChangeStatus }) {
   const [date, setDate] = useState(() => dateKey(new Date()))
   const [list, setList] = useState([])
 
@@ -278,6 +284,16 @@ function TodayOverviewTab({ stores }) {
   }, [date])
 
   usePollingRefresh(load)
+
+  // 這頁是給司機看的整合路線表，切換狀態不分是哪家店的單（司機/和平店/超級管理員才看得到按鈕）
+  const cycleStatus = async (item) => {
+    const next = DELIVERY_STATUSES[(DELIVERY_STATUSES.indexOf(item.status) + 1) % DELIVERY_STATUSES.length]
+    if (!confirm(`確定要將狀態從「${item.status}」改成「${next}」嗎？`)) return
+    try {
+      await api.put(`/board/deliveries/${item.id}`, { ...item, status: next }, withStore(storeId))
+      load()
+    } catch (err) { toast.error(err.message || '更新失敗') }
+  }
 
   // 預設依「排序值→建立順序」排；排序值都還沒調整過時剛好等同建立順序，使用者可以再用上下箭頭手動調整司機路線
   const sorted = [...list].sort((a, b) => (a.sort_order - b.sort_order) || (a.id - b.id))
@@ -366,6 +382,9 @@ function TodayOverviewTab({ stores }) {
                         )}
                         {item.content && <p className="text-xs text-gray-500 mt-0.5 whitespace-pre-wrap">{item.content}</p>}
                       </>
+                    )}
+                    {canChangeStatus && (
+                      <button onClick={() => cycleStatus(item)} className="text-xs text-gray-500 underline mt-1.5 py-1.5 px-0.5">切換狀態</button>
                     )}
                   </div>
                 </div>
@@ -631,6 +650,7 @@ function DeliveriesTab({ storeId, stores, canChangeStatus }) {
         ))}
       </div>
 
+      {storeId && (
       <form onSubmit={submit} className="bg-white border border-gray-200 rounded-sm p-5 mt-6 space-y-3">
         <h2 className="font-semibold text-dark text-sm mb-1">{editingId ? '編輯配送單' : '新增配送單'}</h2>
         <div>
@@ -729,6 +749,7 @@ function DeliveriesTab({ storeId, stores, canChangeStatus }) {
           )}
         </div>
       </form>
+      )}
     </div>
   )
 }
