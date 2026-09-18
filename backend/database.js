@@ -166,6 +166,7 @@ function initDatabase() {
       customer_contact TEXT DEFAULT '',
       status TEXT NOT NULL DEFAULT '待配送',
       created_by TEXT NOT NULL DEFAULT '',
+      sort_order INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -215,6 +216,8 @@ function initDatabase() {
   try { db.exec("ALTER TABLE board_deliveries ADD COLUMN created_by TEXT NOT NULL DEFAULT ''"); } catch (e) { /* 已存在 */ }
   try { db.exec("ALTER TABLE board_stock ADD COLUMN created_by TEXT NOT NULL DEFAULT ''"); } catch (e) { /* 已存在 */ }
   try { db.exec("ALTER TABLE board_comments ADD COLUMN created_by TEXT NOT NULL DEFAULT ''"); } catch (e) { /* 已存在 */ }
+  // 今日配送總覽的司機路線手動排序（同一天同一時段內的順序），舊表補欄位
+  try { db.exec("ALTER TABLE board_deliveries ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0"); } catch (e) { /* 已存在 */ }
 
   // 初始化分店登入帳號（僅在該分店尚無帳號時建立，密碼隨機產生，只顯示一次）
   const boardUsernameMap = { '和平店': 'heping', '板橋店': 'banqiao', '樹林 Sika 展示店': 'shulin' };

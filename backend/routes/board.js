@@ -109,6 +109,18 @@ router.post('/deliveries', requireStore, (req, res) => {
   res.status(201).json({ success: true, id: info.lastInsertRowid });
 });
 
+// 今日配送總覽的司機路線手動排序：全公司只有一位司機，順序是跨分店共用的排程，
+// 所以不比對「是不是自己分店的資料」，只要是有權限進佈告欄的帳號都可以調整當天路線順序。
+router.put('/deliveries/reorder', (req, res) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ success: false, message: '缺少排序資料' });
+  }
+  const update = db.prepare('UPDATE board_deliveries SET sort_order = ? WHERE id = ?');
+  ids.forEach((id, idx) => update.run(idx, id));
+  res.json({ success: true });
+});
+
 router.put('/deliveries/:id', requireStore,
   ownerOnly(req => db.prepare('SELECT * FROM board_deliveries WHERE id = ?').get(req.params.id)),
   (req, res) => {

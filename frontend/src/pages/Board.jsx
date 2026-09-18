@@ -275,11 +275,30 @@ function TodayOverviewTab() {
 
   usePollingRefresh(load)
 
-  const sorted = [...list].sort((a, b) => (a.delivery_time || '').localeCompare(b.delivery_time || ''))
+  // 預設依「排序值→建立順序」排；排序值都還沒調整過時剛好等同建立順序，使用者可以再用上下箭頭手動調整司機路線
+  const sorted = [...list].sort((a, b) => (a.sort_order - b.sort_order) || (a.id - b.id))
   const byPeriod = DELIVERY_PERIODS.reduce((acc, p) => {
     acc[p.key] = sorted.filter(it => periodOfDeliveryTime(it.delivery_time) === p.key)
     return acc
   }, {})
+
+  // 全公司共用一位司機，順序是跨分店的（不分是哪家店的單），上下移動會把同時段的整批新順序送到後端存起來
+  const moveItem = async (periodKey, index, direction) => {
+    const items = byPeriod[periodKey]
+    const targetIndex = index + direction
+    if (targetIndex < 0 || targetIndex >= items.length) return
+    const reordered = [...items]
+    ;[reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]]
+    const ids = reordered.map(it => it.id)
+    const idToOrder = new Map(ids.map((id, i) => [id, i]))
+    setList(prev => prev.map(it => idToOrder.has(it.id) ? { ...it, sort_order: idToOrder.get(it.id) } : it))
+    try {
+      await api.put('/board/deliveries/reorder', { ids })
+    } catch (err) {
+      toast.error('排序更新失敗，重新整理後可能會還原')
+      load()
+    }
+  }
 
   const shiftDate = (days) => {
     const d = new Date(`${date}T00:00:00`)
@@ -301,7 +320,7 @@ function TodayOverviewTab() {
             <button onClick={() => setDate(dateKey(new Date()))} className="text-xs text-primary underline py-1 px-0.5">回今天</button>
           )}
         </div>
-        <span className="text-xs text-gray-400">司機整合路線表・全分店合計 {sorted.length} 筆</span>
+        <span className="text-xs text-gray-400">司機整合路線表・全分店合計 {sorted.length} 筆・可用▲▼調整跑單順序</span>
       </div>
 
       {DELIVERY_PERIODS.map(p => (
@@ -316,18 +335,29 @@ function TodayOverviewTab() {
             <p className="text-xs text-gray-400 pl-1">這個時段尚無配送</p>
           ) : (
             <div className="space-y-2">
-              {byPeriod[p.key].map(item => (
-                <div key={item.id} className="border border-gray-200 rounded-sm p-3"
+              {byPeriod[p.key].map((item, idx) => (
+                <div key={item.id} className="border border-gray-200 rounded-sm p-3 flex gap-2"
                   style={{ borderLeft: `4px solid ${storeColor(item.store_id)}` }}>
-                  <div className="flex justify-between items-baseline flex-wrap gap-1">
-                    <span className="text-sm font-semibold text-dark">{item.store_name}{item.created_by && <span className="text-[11px] text-gray-400 font-normal">・上傳者 {item.created_by}</span>}</span>
-                    <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${badgeClass(item.status)}`}>{item.status}</span>
-                  </div>
-                  <p className="text-sm text-dark mt-1">📍 {item.location}</p>
-                  {(item.customer_name || item.customer_contact) && (
-                    <p className="text-xs text-gray-500 mt-0.5">👤 {item.customer_name}{item.customer_contact ? `｜${item.customer_contact}` : ''}</p>
+                  {byPeriod[p.key].length > 1 && (
+                    <div className="flex flex-col justify-center gap-0.5 shrink-0">
+                      <button onClick={() => moveItem(p.key, idx, -1)} disabled={idx === 0}
+                        title="往前移" className="text-gray-400 hover:text-dark disabled:opacity-20 disabled:hover:text-gray-400 px-1.5 py-1 leading-none">▲</button>
+                      <span className="text-[10px] text-gray-300 text-center">{idx + 1}</span>
+                      <button onClick={() => moveItem(p.key, idx, 1)} disabled={idx === byPeriod[p.key].length - 1}
+                        title="往後移" className="text-gray-400 hover:text-dark disabled:opacity-20 disabled:hover:text-gray-400 px-1.5 py-1 leading-none">▼</button>
+                    </div>
                   )}
-                  {item.content && <p className="text-xs text-gray-500 mt-0.5 whitespace-pre-wrap">{item.content}</p>}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-baseline flex-wrap gap-1">
+                      <span className="text-sm font-semibold text-dark">{item.store_name}{item.created_by && <span className="text-[11px] text-gray-400 font-normal">・上傳者 {item.created_by}</span>}</span>
+                      <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${badgeClass(item.status)}`}>{item.status}</span>
+                    </div>
+                    <p className="text-sm text-dark mt-1">📍 {item.location}</p>
+                    {(item.customer_name || item.customer_contact) && (
+                      <p className="text-xs text-gray-500 mt-0.5">👤 {item.customer_name}{item.customer_contact ? `｜${item.customer_contact}` : ''}</p>
+                    )}
+                    {item.content && <p className="text-xs text-gray-500 mt-0.5 whitespace-pre-wrap">{item.content}</p>}
+                  </div>
                 </div>
               ))}
             </div>
