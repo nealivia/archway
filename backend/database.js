@@ -169,6 +169,7 @@ function initDatabase() {
       sort_order INTEGER NOT NULL DEFAULT 0,
       delivery_type TEXT NOT NULL DEFAULT '客人配送',
       transfer_to_store_id INTEGER REFERENCES stores(id) ON DELETE SET NULL,
+      transfer_to TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -223,6 +224,9 @@ function initDatabase() {
   // 配送單分「配送貨物給客人」跟「分店調撥」兩種：調撥只需要填目標分店與時間，其他欄位不必填
   try { db.exec("ALTER TABLE board_deliveries ADD COLUMN delivery_type TEXT NOT NULL DEFAULT '客人配送'"); } catch (e) { /* 已存在 */ }
   try { db.exec("ALTER TABLE board_deliveries ADD COLUMN transfer_to_store_id INTEGER REFERENCES stores(id) ON DELETE SET NULL"); } catch (e) { /* 已存在 */ }
+  // 調撥目標後來還要能選「泰山倉」「富友倉」這種不是公司分店（stores 表）的倉庫，
+  // 所以改存文字（transfer_to），不再限定只能是 stores 表裡的分店；上面舊的 transfer_to_store_id 欄位留著相容舊資料就好
+  try { db.exec("ALTER TABLE board_deliveries ADD COLUMN transfer_to TEXT NOT NULL DEFAULT ''"); } catch (e) { /* 已存在 */ }
 
   // 初始化分店登入帳號（僅在該分店尚無帳號時建立，密碼隨機產生，只顯示一次）
   const boardUsernameMap = { '和平店': 'heping', '板橋店': 'banqiao', '樹林 Sika 展示店': 'shulin' };

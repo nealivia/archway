@@ -357,7 +357,7 @@ function TodayOverviewTab({ stores }) {
                       <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${badgeClass(item.status)}`}>{item.status}</span>
                     </div>
                     {item.delivery_type === '分店調撥' ? (
-                      <p className="text-sm text-dark mt-1">🔄 調撥至 {storeName(stores, item.transfer_to_store_id)}</p>
+                      <p className="text-sm text-dark mt-1">🔄 調撥至 {transferTargetLabel(item, stores)}</p>
                     ) : (
                       <>
                         <p className="text-sm text-dark mt-1">📍 {item.location}</p>
@@ -380,15 +380,25 @@ function TodayOverviewTab({ stores }) {
 
 // ================= 配送單（行事曆檢視） =================
 const DELIVERY_TYPES = ['客人配送', '分店調撥']
-const EMPTY_DELIVERY_FORM = { delivery_date: '', period: 'morning', delivery_type: '客人配送', location: '', content: '', status: '待配送', customer_name: '', customer_contact: '', transfer_to_store_id: '' }
+const EMPTY_DELIVERY_FORM = { delivery_date: '', period: 'morning', delivery_type: '客人配送', location: '', content: '', status: '待配送', customer_name: '', customer_contact: '', transfer_to: '' }
 function storeName(stores, id) {
   return stores.find(s => String(s.id) === String(id))?.name || ''
+}
+// 調撥目標：新資料直接存目標名稱文字（transfer_to），可以是分店或泰山倉/富友倉這類非分店倉庫；
+// 舊資料（改版前建立的）沒有 transfer_to，退回用 transfer_to_store_id 查分店名稱顯示
+function transferTargetLabel(item, stores) {
+  return item.transfer_to || storeName(stores, item.transfer_to_store_id) || '（未指定）'
 }
 
 function DeliveriesTab({ storeId, stores, canChangeStatus }) {
   const [list, setList] = useState([])
   const [filterStore, setFilterStore] = useState('')
   const [form, setForm] = useState(EMPTY_DELIVERY_FORM)
+  // 調撥目標清單：分店 + 倉庫（例如泰山倉、富友倉），跟後端驗證用同一份名單
+  const [transferTargets, setTransferTargets] = useState([])
+  useEffect(() => {
+    api.get('/board/deliveries/transfer-targets').then(r => setTransferTargets(r.data || [])).catch(() => {})
+  }, [])
   const [editingId, setEditingId] = useState(null)
   const [saving, setSaving] = useState(false)
   const [viewMonth, setViewMonth] = useState(() => { const d = new Date(); d.setDate(1); return d })
@@ -430,7 +440,7 @@ function DeliveriesTab({ storeId, stores, canChangeStatus }) {
     e.preventDefault()
     if (!form.delivery_date) return toast.error('配送日期為必填')
     if (form.delivery_type === '分店調撥') {
-      if (!form.transfer_to_store_id) return toast.error('請選擇調撥目標分店')
+      if (!form.transfer_to) return toast.error('請選擇調撥目標')
     } else if (!form.location) {
       return toast.error('配送地點為必填')
     }
@@ -450,7 +460,7 @@ function DeliveriesTab({ storeId, stores, canChangeStatus }) {
             delivery_time: `${form.delivery_date}T${periodInfo(form.period).time}`,
             status: form.status,
             delivery_type: '分店調撥',
-            transfer_to_store_id: form.transfer_to_store_id
+            transfer_to: form.transfer_to
           }
         : {
             delivery_time: `${form.delivery_date}T${periodInfo(form.period).time}`,
@@ -486,7 +496,7 @@ function DeliveriesTab({ storeId, stores, canChangeStatus }) {
       status: item.status,
       customer_name: item.customer_name || '',
       customer_contact: item.customer_contact || '',
-      transfer_to_store_id: item.transfer_to_store_id || ''
+      transfer_to: item.transfer_to || storeName(stores, item.transfer_to_store_id) || ''
     })
   }
 
@@ -595,7 +605,7 @@ function DeliveriesTab({ storeId, stores, canChangeStatus }) {
             </div>
             <span className={`inline-block mt-1.5 text-xs px-2.5 py-0.5 rounded-full font-medium ${badgeClass(item.status)}`}>{item.status}</span>
             {item.delivery_type === '分店調撥' ? (
-              <p className="text-sm text-dark mt-2">🔄 調撥至 {storeName(stores, item.transfer_to_store_id)}</p>
+              <p className="text-sm text-dark mt-2">🔄 調撥至 {transferTargetLabel(item, stores)}</p>
             ) : (
               <>
                 <p className="text-sm text-dark mt-2 whitespace-pre-wrap">📍 {item.location}{item.content ? `\n${item.content}` : ''}</p>
@@ -654,11 +664,11 @@ function DeliveriesTab({ storeId, stores, canChangeStatus }) {
 
         {form.delivery_type === '分店調撥' ? (
           <div>
-            <label className="block text-xs text-gray-500 mb-1">調撥目標分店</label>
-            <select value={form.transfer_to_store_id} onChange={e => setForm(f => ({ ...f, transfer_to_store_id: e.target.value }))}
+            <label className="block text-xs text-gray-500 mb-1">調撥目標</label>
+            <select value={form.transfer_to} onChange={e => setForm(f => ({ ...f, transfer_to: e.target.value }))}
               className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary">
-              <option value="">請選擇分店</option>
-              {stores.filter(s => String(s.id) !== String(storeId)).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              <option value="">請選擇調撥目標</option>
+              {transferTargets.filter(name => name !== storeName(stores, storeId)).map(name => <option key={name} value={name}>{name}</option>)}
             </select>
           </div>
         ) : null}
@@ -950,7 +960,7 @@ function HistoryTab({ stores }) {
       const rows = [
         ...(deliveries.data || []).map(i => ({ type: i.delivery_type === '分店調撥' ? '分店調撥' : '配送單', color: i.delivery_type === '分店調撥' ? 'bg-cyan-600' : 'bg-blue-500', time: i.delivery_time, store: withUploader(i.store_name, i.created_by),
           text: i.delivery_type === '分店調撥'
-            ? `🔄 調撥至 ${storeName(stores, i.transfer_to_store_id)} — ${i.status}`
+            ? `🔄 調撥至 ${transferTargetLabel(i, stores)} — ${i.status}`
             : `📍 ${i.location} — ${i.status}${(i.customer_name || i.customer_contact) ? `\n👤 ${i.customer_name}${i.customer_contact ? '｜' + i.customer_contact : ''}` : ''}${i.content ? '\n' + i.content : ''}` })),
         ...(stock.data || []).map(i => ({ type: '缺訂貨', color: 'bg-amber-500', time: i.updated_at, store: withUploader(i.store_name, i.created_by),
           text: `🧾 ${i.item_name} — ${i.status}${i.note ? '\n備註：' + i.note : ''}` })),
