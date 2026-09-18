@@ -175,10 +175,9 @@ function DeliveriesTab({ storeId, stores }) {
     return acc
   }, {})
 
-  // 同一分店、同一天、同一時段已經有幾筆配送（編輯時不算自己這筆）
+  // 全公司只有一位配送司機，同一天、同一時段的配送量是全分店共用的額度（編輯時不算自己這筆）
   const countInSlot = (date, period, excludeId) => {
     return list.filter(i =>
-      String(i.store_id) === String(storeId) &&
       (i.delivery_time || '').slice(0, 10) === date &&
       periodOfDeliveryTime(i.delivery_time) === period &&
       i.id !== excludeId
@@ -191,7 +190,7 @@ function DeliveriesTab({ storeId, stores }) {
     const existing = countInSlot(form.delivery_date, form.period, editingId)
     if (existing >= MAX_PER_SLOT) {
       const p = periodInfo(form.period)
-      if (!confirm(`⚠️ ${form.delivery_date}「${p.label}」時段已經有 ${existing} 筆配送，確定仍要新增嗎？`)) return
+      if (!confirm(`⚠️ 全公司只有一位配送司機，${form.delivery_date}「${p.label}」時段全分店合計已有 ${existing} 筆配送，確定仍要新增嗎？`)) return
     }
     setSaving(true)
     try {
@@ -377,7 +376,7 @@ function DeliveriesTab({ storeId, stores }) {
           {form.delivery_date && countInSlot(form.delivery_date, form.period, editingId) >= MAX_PER_SLOT && (
             <div className="flex items-end">
               <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-sm px-2 py-2">
-                ⚠️ 這個時段已有 {countInSlot(form.delivery_date, form.period, editingId)} 筆配送
+                ⚠️ 全公司只有一位司機，這個時段全分店合計已有 {countInSlot(form.delivery_date, form.period, editingId)} 筆配送
               </p>
             </div>
           )}
