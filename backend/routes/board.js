@@ -74,9 +74,27 @@ router.get('/deliveries', (req, res) => {
   const rows = db.prepare(`
     SELECT d.*, s.name AS store_name FROM board_deliveries d
     JOIN stores s ON s.id = d.store_id
-    ${sql} ORDER BY delivery_time DESC
+    ${sql} ORDER BY delivery_time DESC LIMIT 500
   `).all(...params);
   res.json({ success: true, data: rows });
+});
+
+// 全公司只有一位配送司機，同一天、同一時段的配送量是全分店共用的額度。
+// 前端月曆現在只載入當月資料，所以額度用這支輕量 API 直接向資料庫查詢當天資料，不受月曆載入範圍限制，結果永遠準確。
+router.get('/deliveries/slot-count', (req, res) => {
+  const { date, period, exclude } = req.query;
+  if (!date || !period) {
+    return res.status(400).json({ success: false, message: '缺少日期或時段' });
+  }
+  const excludeId = exclude ? parseInt(exclude, 10) : null;
+  const rows = db.prepare(`SELECT id, delivery_time FROM board_deliveries WHERE date(delivery_time) = ?`).all(date);
+  const count = rows.filter(r => {
+    if (excludeId && r.id === excludeId) return false;
+    const hhmm = (r.delivery_time || '').slice(11, 16);
+    const p = hhmm < '12:30' ? 'morning' : 'afternoon';
+    return p === period;
+  }).length;
+  res.json({ success: true, count });
 });
 
 router.post('/deliveries', requireStore, (req, res) => {
@@ -118,7 +136,7 @@ router.get('/stock', (req, res) => {
   const rows = db.prepare(`
     SELECT d.*, s.name AS store_name FROM board_stock d
     JOIN stores s ON s.id = d.store_id
-    ${sql} ORDER BY updated_at DESC
+    ${sql} ORDER BY updated_at DESC LIMIT 500
   `).all(...params);
   res.json({ success: true, data: rows });
 });
@@ -160,7 +178,7 @@ router.get('/comments', (req, res) => {
   const rows = db.prepare(`
     SELECT c.*, s.name AS store_name FROM board_comments c
     JOIN stores s ON s.id = c.store_id
-    ${sql} ORDER BY created_at DESC
+    ${sql} ORDER BY created_at DESC LIMIT 500
   `).all(...params);
   res.json({ success: true, data: rows });
 });
@@ -188,7 +206,7 @@ router.get('/status-log', (req, res) => {
   const rows = db.prepare(`
     SELECT l.*, s.name AS store_name FROM board_status_log l
     JOIN stores s ON s.id = l.store_id
-    ${sql} ORDER BY created_at DESC
+    ${sql} ORDER BY created_at DESC LIMIT 500
   `).all(...params);
   res.json({ success: true, data: rows });
 });

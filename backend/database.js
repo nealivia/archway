@@ -196,6 +196,16 @@ function initDatabase() {
       changed_by TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    -- 佈告欄常用查詢欄位加索引（依分店篩選、依日期排序/區間查詢、清理舊紀錄）
+    CREATE INDEX IF NOT EXISTS idx_board_deliveries_time ON board_deliveries(delivery_time);
+    CREATE INDEX IF NOT EXISTS idx_board_deliveries_store ON board_deliveries(store_id);
+    CREATE INDEX IF NOT EXISTS idx_board_stock_updated ON board_stock(updated_at);
+    CREATE INDEX IF NOT EXISTS idx_board_stock_store ON board_stock(store_id);
+    CREATE INDEX IF NOT EXISTS idx_board_comments_created ON board_comments(created_at);
+    CREATE INDEX IF NOT EXISTS idx_board_comments_store ON board_comments(store_id);
+    CREATE INDEX IF NOT EXISTS idx_board_status_log_created ON board_status_log(created_at);
+    CREATE INDEX IF NOT EXISTS idx_board_status_log_store ON board_status_log(store_id);
   `);
 
   // 初始化分店登入帳號（僅在該分店尚無帳號時建立，密碼隨機產生，只顯示一次）

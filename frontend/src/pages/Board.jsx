@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 
 const STORE_KEY = 'board_store_id'
+const NOTIFY_KEY = 'board_notify_enabled'
 const TABS = [
-  { key: 'deliveries', label: '🚚 配送單' },
+  { key: 'today', label: '🚚 今日配送總覽' },
+  { key: 'deliveries', label: '📅 配送單管理' },
   { key: 'stock', label: '📦 缺訂貨狀態' },
   { key: 'comments', label: '💬 留言板' },
   { key: 'history', label: '🕘 歷史紀錄查詢' }
@@ -68,6 +70,13 @@ function withStore(storeId) {
   return { headers: { 'X-Store-Id': storeId } }
 }
 
+// 後端的 to 是用字串比較（delivery_time >= from AND delivery_time <= to），
+// delivery_time 實際存的是「日期T時間」，如果 to 只給日期（沒有時間），字串比較會比單純日期字串大，
+// 導致當天的資料整批被濾掉。查詢某天結尾時要補上當天最後一刻。
+function endOfDay(dateStr) {
+  return `${dateStr}T23:59:59`
+}
+
 // 定時重新拉取最新資料：分頁在背景（切走分頁/螢幕鎖住）時暫停，省流量與電力；
 // 回到前景時立刻拉一次最新資料，再繼續照間隔輪詢。
 function usePollingRefresh(load, intervalMs = 10000) {
@@ -88,6 +97,87 @@ function usePollingRefresh(load, intervalMs = 10000) {
   }, [load, intervalMs])
 }
 
+// 用 Web Audio 產生一個簡短提示音，不需要額外音檔
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.frequency.value = 880
+    gain.gain.setValueAtTime(0.15, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35)
+    osc.start()
+    osc.stop(ctx.currentTime + 0.35)
+  } catch (e) { /* 瀏覽器不支援音效就略過 */ }
+}
+
+// 新資料桌面通知開關（需使用者主動授權瀏覽器通知權限）
+function useBoardNotifications() {
+  const [enabled, setEnabled] = useState(() =>
+    localStorage.getItem(NOTIFY_KEY) === '1' && typeof Notification !== 'undefined' && Notification.permission === 'granted'
+  )
+
+  const enableNotifications = async () => {
+    if (typeof Notification === 'undefined') return toast.error('這個瀏覽器不支援桌面通知')
+    const perm = await Notification.requestPermission()
+    if (perm === 'granted') {
+      localStorage.setItem(NOTIFY_KEY, '1')
+      setEnabled(true)
+      toast.success('已開啟新資料提醒（音效＋桌面通知）')
+    } else {
+      toast.error('未取得通知權限')
+    }
+  }
+
+  const disableNotifications = () => {
+    localStorage.setItem(NOTIFY_KEY, '0')
+    setEnabled(false)
+  }
+
+  return { enabled, enableNotifications, disableNotifications }
+}
+
+// 背景偵測配送單／缺訂貨／留言板是否有新資料（不論目前停在哪個分頁都會提醒），
+// 只有在使用者開啟提醒時才會實際輪詢與發出通知。
+function useCrossBoardAlerts(enabled) {
+  const seen = useRef({ deliveries: null, stock: null, comments: null })
+
+  useEffect(() => {
+    if (!enabled) seen.current = { deliveries: null, stock: null, comments: null }
+  }, [enabled])
+
+  const diffAndAlert = (key, items, title, msgFn) => {
+    const ids = new Set(items.map(i => i.id))
+    const prev = seen.current[key]
+    seen.current[key] = ids
+    if (prev === null) return // 第一次載入不通知，避免一開啟就跳一堆舊資料
+    const newItems = items.filter(i => !prev.has(i.id))
+    if (newItems.length === 0) return
+    playBeep()
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      const body = newItems.length === 1 ? msgFn(newItems[0]) : `有 ${newItems.length} 筆新資料`
+      try { new Notification(title, { body }) } catch (e) { /* 忽略通知顯示失敗 */ }
+    }
+  }
+
+  const check = useCallback(() => {
+    if (!enabled) return
+    Promise.all([
+      api.get('/board/deliveries'),
+      api.get('/board/stock'),
+      api.get('/board/comments')
+    ]).then(([d, s, c]) => {
+      diffAndAlert('deliveries', d.data || [], '🚚 新配送單', it => `${it.store_name}・${it.location}`)
+      diffAndAlert('stock', s.data || [], '⚠️ 缺訂貨狀態更新', it => `${it.store_name}・${it.item_name}（${it.status}）`)
+      diffAndAlert('comments', c.data || [], '💬 新留言', it => `${it.store_name}：${it.message}`)
+    }).catch(() => { /* 背景檢查失敗不影響主要功能 */ })
+  }, [enabled])
+
+  usePollingRefresh(check, 15000)
+}
+
 export default function Board() {
   const { user, logout } = useAuth()
   const isStoreAccount = user?.role === 'store'
@@ -95,7 +185,9 @@ export default function Board() {
   // store 角色：身分固定為自己帳號綁定的分店。admin/super_admin（總部）：可自行切換代操分店。
   const [pickedStoreId, setPickedStoreId] = useState(() => localStorage.getItem(STORE_KEY) || '')
   const [stores, setStores] = useState([])
-  const [activeTab, setActiveTab] = useState('deliveries')
+  const [activeTab, setActiveTab] = useState('today')
+  const { enabled: notifyEnabled, enableNotifications, disableNotifications } = useBoardNotifications()
+  useCrossBoardAlerts(notifyEnabled)
 
   useEffect(() => {
     api.get('/stores').then(r => setStores(r.data || [])).catch(() => toast.error('分店清單載入失敗'))
@@ -133,22 +225,27 @@ export default function Board() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h1 className="text-xl font-bold text-dark">📋 分店電子佈告欄</h1>
-        <div className="text-sm text-gray-500">
-          目前身分：<span className="font-semibold text-dark">{currentStoreName}</span>
+        <div className="flex items-center flex-wrap gap-x-1 gap-y-1 text-sm text-gray-500">
+          <span>目前身分：<span className="font-semibold text-dark">{currentStoreName}</span></span>
+          <button onClick={() => (notifyEnabled ? disableNotifications() : enableNotifications())}
+            title="開啟後，新增配送單/缺貨狀態/留言時會有音效與桌面通知提醒"
+            className={`ml-2 underline text-xs py-1.5 px-0.5 ${notifyEnabled ? 'text-primary' : 'text-gray-400'}`}>
+            {notifyEnabled ? '🔔 新資料提醒已開啟' : '🔕 開啟新資料提醒'}
+          </button>
           {!isStoreAccount && (
             <button onClick={() => { setPickedStoreId(''); localStorage.removeItem(STORE_KEY) }}
-              className="ml-2 text-primary underline text-xs">切換分店</button>
+              className="ml-2 text-primary underline text-xs py-1.5 px-0.5">切換分店</button>
           )}
-          <button onClick={logout} className="ml-2 text-gray-400 underline text-xs">登出</button>
+          <button onClick={logout} className="ml-2 text-gray-400 underline text-xs py-1.5 px-0.5">登出</button>
         </div>
       </div>
 
       <div className="flex gap-1 border-b border-gray-200 mb-5 overflow-x-auto">
         {TABS.map(t => (
           <button key={t.key} onClick={() => setActiveTab(t.key)}
-            className={`px-4 py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px transition-colors ${
+            className={`px-4 py-3 text-sm whitespace-nowrap border-b-2 -mb-px transition-colors ${
               activeTab === t.key ? 'border-primary text-primary font-medium' : 'border-transparent text-gray-500 hover:text-dark'
             }`}>
             {t.label}
@@ -156,10 +253,87 @@ export default function Board() {
         ))}
       </div>
 
+      {activeTab === 'today' && <TodayOverviewTab />}
       {activeTab === 'deliveries' && <DeliveriesTab storeId={storeId} stores={stores} />}
       {activeTab === 'stock' && <StockTab storeId={storeId} stores={stores} />}
       {activeTab === 'comments' && <CommentsTab storeId={storeId} />}
       {activeTab === 'history' && <HistoryTab stores={stores} />}
+    </div>
+  )
+}
+
+// ================= 今日配送總覽（給司機看的整合路線表，合併全分店、依時段/時間排序） =================
+function TodayOverviewTab() {
+  const [date, setDate] = useState(() => dateKey(new Date()))
+  const [list, setList] = useState([])
+
+  const load = useCallback(() => {
+    api.get('/board/deliveries', { params: { from: date, to: endOfDay(date) } })
+      .then(r => setList(r.data || []))
+      .catch(() => toast.error('載入失敗'))
+  }, [date])
+
+  usePollingRefresh(load)
+
+  const sorted = [...list].sort((a, b) => (a.delivery_time || '').localeCompare(b.delivery_time || ''))
+  const byPeriod = DELIVERY_PERIODS.reduce((acc, p) => {
+    acc[p.key] = sorted.filter(it => periodOfDeliveryTime(it.delivery_time) === p.key)
+    return acc
+  }, {})
+
+  const shiftDate = (days) => {
+    const d = new Date(`${date}T00:00:00`)
+    d.setDate(d.getDate() + days)
+    setDate(dateKey(d))
+  }
+
+  const isToday = date === dateKey(new Date())
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <button onClick={() => shiftDate(-1)} className="text-gray-400 hover:text-dark text-lg px-2 py-1">‹</button>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)}
+            className="border border-gray-200 text-sm px-3 py-2 rounded-sm" />
+          <button onClick={() => shiftDate(1)} className="text-gray-400 hover:text-dark text-lg px-2 py-1">›</button>
+          {!isToday && (
+            <button onClick={() => setDate(dateKey(new Date()))} className="text-xs text-primary underline py-1 px-0.5">回今天</button>
+          )}
+        </div>
+        <span className="text-xs text-gray-400">司機整合路線表・全分店合計 {sorted.length} 筆</span>
+      </div>
+
+      {DELIVERY_PERIODS.map(p => (
+        <div key={p.key} className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <h2 className="text-sm font-semibold text-dark">{p.label}</h2>
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${byPeriod[p.key].length >= MAX_PER_SLOT ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-500'}`}>
+              {byPeriod[p.key].length} 筆{byPeriod[p.key].length >= MAX_PER_SLOT ? '（已達司機上限）' : ''}
+            </span>
+          </div>
+          {byPeriod[p.key].length === 0 ? (
+            <p className="text-xs text-gray-400 pl-1">這個時段尚無配送</p>
+          ) : (
+            <div className="space-y-2">
+              {byPeriod[p.key].map(item => (
+                <div key={item.id} className="border border-gray-200 rounded-sm p-3"
+                  style={{ borderLeft: `4px solid ${storeColor(item.store_id)}` }}>
+                  <div className="flex justify-between items-baseline flex-wrap gap-1">
+                    <span className="text-sm font-semibold text-dark">{item.store_name}</span>
+                    <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${badgeClass(item.status)}`}>{item.status}</span>
+                  </div>
+                  <p className="text-sm text-dark mt-1">📍 {item.location}</p>
+                  {(item.customer_name || item.customer_contact) && (
+                    <p className="text-xs text-gray-500 mt-0.5">👤 {item.customer_name}{item.customer_contact ? `｜${item.customer_contact}` : ''}</p>
+                  )}
+                  {item.content && <p className="text-xs text-gray-500 mt-0.5 whitespace-pre-wrap">{item.content}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   )
 }
@@ -176,9 +350,13 @@ function DeliveriesTab({ storeId, stores }) {
   const [viewMonth, setViewMonth] = useState(() => { const d = new Date(); d.setDate(1); return d })
   const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date()))
 
+  // 月曆只顯示某個月份（含前後補齊的格子），依區間向後端查詢，避免每次輪詢都抓全部歷史配送單
   const load = useCallback(() => {
-    api.get('/board/deliveries').then(r => setList(r.data || [])).catch(() => toast.error('載入失敗'))
-  }, [])
+    const days = buildMonthGrid(viewMonth)
+    const from = dateKey(days[0])
+    const to = endOfDay(dateKey(days[days.length - 1]))
+    api.get('/board/deliveries', { params: { from, to } }).then(r => setList(r.data || [])).catch(() => toast.error('載入失敗'))
+  }, [viewMonth])
 
   usePollingRefresh(load)
 
@@ -191,19 +369,27 @@ function DeliveriesTab({ storeId, stores }) {
     return acc
   }, {})
 
-  // 全公司只有一位配送司機，同一天、同一時段的配送量是全分店共用的額度（編輯時不算自己這筆）
-  const countInSlot = (date, period, excludeId) => {
-    return list.filter(i =>
-      (i.delivery_time || '').slice(0, 10) === date &&
-      periodOfDeliveryTime(i.delivery_time) === period &&
-      i.id !== excludeId
-    ).length
-  }
+  // 全公司只有一位配送司機，同一天、同一時段的配送量是全分店共用的額度（編輯時不算自己這筆）。
+  // 月曆現在只載入當月資料，所以額度改成即時向後端查詢，不管使用者選的日期是不是在目前這個月都能算對。
+  const [slotCount, setSlotCount] = useState(0)
+
+  useEffect(() => {
+    if (!form.delivery_date) { setSlotCount(0); return }
+    let cancelled = false
+    api.get('/board/deliveries/slot-count', { params: { date: form.delivery_date, period: form.period, exclude: editingId || '' } })
+      .then(r => { if (!cancelled) setSlotCount(r.count || 0) })
+      .catch(() => { /* 查詢失敗就不顯示警告，送出時仍會再檢查一次 */ })
+    return () => { cancelled = true }
+  }, [form.delivery_date, form.period, editingId])
 
   const submit = async (e) => {
     e.preventDefault()
     if (!form.delivery_date || !form.location) return toast.error('配送日期與地點為必填')
-    const existing = countInSlot(form.delivery_date, form.period, editingId)
+    let existing = slotCount
+    try {
+      const r = await api.get('/board/deliveries/slot-count', { params: { date: form.delivery_date, period: form.period, exclude: editingId || '' } })
+      existing = r.count || 0
+    } catch (e) { /* 查詢失敗就用畫面上目前顯示的數字 */ }
     if (existing >= MAX_PER_SLOT) {
       const p = periodInfo(form.period)
       if (!confirm(`⚠️ 全公司只有一位配送司機，${form.delivery_date}「${p.label}」時段全分店合計已有 ${existing} 筆配送，確定仍要新增嗎？`)) return
@@ -285,13 +471,13 @@ function DeliveriesTab({ storeId, stores }) {
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <button onClick={() => setViewMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
-            className="text-gray-400 hover:text-dark px-1">‹</button>
+            className="text-gray-400 hover:text-dark text-lg px-2 py-1">‹</button>
           <span className="text-sm font-semibold text-dark min-w-[110px] text-center">{monthLabel}</span>
           <button onClick={() => setViewMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
-            className="text-gray-400 hover:text-dark px-1">›</button>
+            className="text-gray-400 hover:text-dark text-lg px-2 py-1">›</button>
         </div>
         <select value={filterStore} onChange={e => setFilterStore(e.target.value)}
-          className="border border-gray-200 text-xs px-2 py-1.5 rounded-sm">
+          className="border border-gray-200 text-xs px-2 py-2 rounded-sm">
           <option value="">全部分店</option>
           {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
@@ -355,9 +541,9 @@ function DeliveriesTab({ storeId, stores }) {
             )}
             {String(item.store_id) === String(storeId) && (
               <div className="flex gap-4 mt-2">
-                <button onClick={() => cycleStatus(item)} className="text-xs text-gray-500 underline">切換狀態</button>
-                <button onClick={() => startEdit(item)} className="text-xs text-primary underline">編輯</button>
-                <button onClick={() => remove(item)} className="text-xs text-red-500 underline">刪除</button>
+                <button onClick={() => cycleStatus(item)} className="text-xs text-gray-500 underline py-1.5 px-0.5">切換狀態</button>
+                <button onClick={() => startEdit(item)} className="text-xs text-primary underline py-1.5 px-0.5">編輯</button>
+                <button onClick={() => remove(item)} className="text-xs text-red-500 underline py-1.5 px-0.5">刪除</button>
               </div>
             )}
           </div>
@@ -389,10 +575,10 @@ function DeliveriesTab({ storeId, stores }) {
               {DELIVERY_STATUSES.map(s => <option key={s}>{s}</option>)}
             </select>
           </div>
-          {form.delivery_date && countInSlot(form.delivery_date, form.period, editingId) >= MAX_PER_SLOT && (
+          {form.delivery_date && slotCount >= MAX_PER_SLOT && (
             <div className="flex items-end">
               <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-sm px-2 py-2">
-                ⚠️ 全公司只有一位司機，這個時段全分店合計已有 {countInSlot(form.delivery_date, form.period, editingId)} 筆配送
+                ⚠️ 全公司只有一位司機，這個時段全分店合計已有 {slotCount} 筆配送
               </p>
             </div>
           )}
@@ -537,7 +723,7 @@ function StockTab({ storeId, stores }) {
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-dark">缺訂貨狀態列表</h2>
         <select value={filterStore} onChange={e => setFilterStore(e.target.value)}
-          className="border border-gray-200 text-xs px-2 py-1.5 rounded-sm">
+          className="border border-gray-200 text-xs px-2 py-2 rounded-sm">
           <option value="">全部分店</option>
           {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
@@ -556,9 +742,9 @@ function StockTab({ storeId, stores }) {
             {item.note && <p className="text-xs text-gray-500 mt-1">備註：{item.note}</p>}
             {String(item.store_id) === String(storeId) && (
               <div className="flex gap-4 mt-2">
-                <button onClick={() => cycleStatus(item)} className="text-xs text-gray-500 underline">切換狀態</button>
-                <button onClick={() => startEdit(item)} className="text-xs text-primary underline">編輯</button>
-                <button onClick={() => remove(item)} className="text-xs text-red-500 underline">刪除</button>
+                <button onClick={() => cycleStatus(item)} className="text-xs text-gray-500 underline py-1.5 px-0.5">切換狀態</button>
+                <button onClick={() => startEdit(item)} className="text-xs text-primary underline py-1.5 px-0.5">編輯</button>
+                <button onClick={() => remove(item)} className="text-xs text-red-500 underline py-1.5 px-0.5">刪除</button>
               </div>
             )}
           </div>
@@ -623,7 +809,7 @@ function CommentsTab({ storeId }) {
             </div>
             <p className="text-sm text-dark mt-2 whitespace-pre-wrap">{item.message}</p>
             {String(item.store_id) === String(storeId) && (
-              <button onClick={() => remove(item)} className="text-xs text-red-500 underline mt-2">刪除</button>
+              <button onClick={() => remove(item)} className="text-xs text-red-500 underline mt-2 py-1.5 px-0.5">刪除</button>
             )}
           </div>
         ))}
@@ -633,17 +819,23 @@ function CommentsTab({ storeId }) {
 }
 
 // ================= 歷史紀錄查詢 =================
+const HISTORY_PAGE_SIZE = 50
+
 function HistoryTab({ stores }) {
   const [store, setStore] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [merged, setMerged] = useState(null)
+  const [visibleCount, setVisibleCount] = useState(HISTORY_PAGE_SIZE)
 
   const search = async () => {
     const params = {}
     if (store) params.store = store
     if (from) params.from = `${from} 00:00:00`
-    if (to) params.to = `${to} 23:59:59`
+    // 配送單的 delivery_time 存的是 T 分隔格式（例如 2026-09-20T08:00），其他資料表則是空白分隔。
+    // 後端用字串比較日期區間，結束時間要用 endOfDay()（T 分隔）才能同時涵蓋兩種格式，
+    // 用空白分隔會讓當天的配送單被字串比較誤判成「比結束時間晚」而被濾掉。
+    if (to) params.to = endOfDay(to)
 
     try {
       const [deliveries, stock, comments, statusLog] = await Promise.all([
@@ -664,6 +856,7 @@ function HistoryTab({ stores }) {
           text: `${typeLabel[i.resource_type] || i.resource_type}狀態：${i.from_status || '（新建立）'} → ${i.to_status}（操作人：${i.changed_by}）` }))
       ].sort((a, b) => new Date(b.time.replace(' ', 'T')) - new Date(a.time.replace(' ', 'T')))
       setMerged(rows)
+      setVisibleCount(HISTORY_PAGE_SIZE)
     } catch (err) { toast.error(err.message || '查詢失敗') }
   }
 
@@ -697,7 +890,7 @@ function HistoryTab({ stores }) {
       <div className="space-y-3">
         {merged === null && <div className="text-center text-gray-400 text-sm py-10">請設定條件後查詢</div>}
         {merged && merged.length === 0 && <div className="text-center text-gray-400 text-sm py-10">查無符合條件的紀錄</div>}
-        {merged && merged.map((item, idx) => (
+        {merged && merged.slice(0, visibleCount).map((item, idx) => (
           <div key={idx} className="border border-gray-200 rounded-sm p-4">
             <div className="flex justify-between items-baseline flex-wrap gap-1">
               <span>
@@ -709,6 +902,12 @@ function HistoryTab({ stores }) {
             <p className="text-sm text-dark mt-2 whitespace-pre-wrap">{item.text}</p>
           </div>
         ))}
+        {merged && merged.length > visibleCount && (
+          <button onClick={() => setVisibleCount(v => v + HISTORY_PAGE_SIZE)}
+            className="w-full text-sm text-primary border border-gray-200 rounded-sm py-2.5 hover:border-primary transition-colors">
+            載入更多（還有 {merged.length - visibleCount} 筆）
+          </button>
+        )}
       </div>
     </div>
   )
