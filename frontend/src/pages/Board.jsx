@@ -422,6 +422,7 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
   const [saving, setSaving] = useState(false)
   const [viewMonth, setViewMonth] = useState(() => { const d = new Date(); d.setDate(1); return d })
   const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date()))
+  const formRef = useRef(null)
 
   // 月曆只顯示某個月份（含前後補齊的格子），依區間向後端查詢，避免每次輪詢都抓全部歷史配送單
   const load = useCallback(() => {
@@ -517,6 +518,8 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
       customer_contact: item.customer_contact || '',
       transfer_to: item.transfer_to || storeName(stores, item.transfer_to_store_id) || ''
     })
+    // 表單在頁面下方，點編輯後如果沒捲過去，使用者會以為按了沒反應
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0)
   }
 
   const cancelEdit = () => {
@@ -651,7 +654,7 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
       </div>
 
       {storeId && (
-      <form onSubmit={submit} className="bg-white border border-gray-200 rounded-sm p-5 mt-6 space-y-3">
+      <form ref={formRef} onSubmit={submit} className="bg-white border border-gray-200 rounded-sm p-5 mt-6 space-y-3">
         <h2 className="font-semibold text-dark text-sm mb-1">{editingId ? '編輯配送單' : '新增配送單'}</h2>
         <div>
           <label className="block text-xs text-gray-500 mb-1">類型</label>
