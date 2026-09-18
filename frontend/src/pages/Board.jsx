@@ -264,7 +264,7 @@ export default function Board() {
       </div>
 
       {activeTab === 'today' && <TodayOverviewTab stores={stores} storeId={storeId} canChangeStatus={canChangeDeliveryStatus} />}
-      {activeTab === 'deliveries' && <DeliveriesTab storeId={storeId} stores={stores} canChangeStatus={canChangeDeliveryStatus} />}
+      {activeTab === 'deliveries' && <DeliveriesTab storeId={storeId} stores={stores} canChangeStatus={canChangeDeliveryStatus} isSuperAdmin={user?.role === 'super_admin'} />}
       {activeTab === 'stock' && <StockTab storeId={storeId} stores={stores} />}
       {activeTab === 'comments' && <CommentsTab storeId={storeId} />}
       {activeTab === 'history' && <HistoryTab stores={stores} />}
@@ -409,7 +409,7 @@ function transferTargetLabel(item, stores) {
   return item.transfer_to || storeName(stores, item.transfer_to_store_id) || '（未指定）'
 }
 
-function DeliveriesTab({ storeId, stores, canChangeStatus }) {
+function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
   const [list, setList] = useState([])
   const [filterStore, setFilterStore] = useState('')
   const [form, setForm] = useState(EMPTY_DELIVERY_FORM)
@@ -633,12 +633,12 @@ function DeliveriesTab({ storeId, stores, canChangeStatus }) {
                 )}
               </>
             )}
-            {(canChangeStatus || String(item.store_id) === String(storeId)) && (
+            {(canChangeStatus || isSuperAdmin || String(item.store_id) === String(storeId)) && (
               <div className="flex gap-4 mt-2">
                 {canChangeStatus && (
                   <button onClick={() => cycleStatus(item)} className="text-xs text-gray-500 underline py-1.5 px-0.5">切換狀態</button>
                 )}
-                {String(item.store_id) === String(storeId) && (
+                {(isSuperAdmin || String(item.store_id) === String(storeId)) && (
                   <>
                     <button onClick={() => startEdit(item)} className="text-xs text-primary underline py-1.5 px-0.5">編輯</button>
                     <button onClick={() => remove(item)} className="text-xs text-red-500 underline py-1.5 px-0.5">刪除</button>

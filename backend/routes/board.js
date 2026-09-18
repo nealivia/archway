@@ -49,7 +49,8 @@ function ownerOnly(getRow) {
   return (req, res, next) => {
     const row = getRow(req);
     if (!row) return res.status(404).json({ success: false, message: '找不到資料' });
-    if (row.store_id !== req.storeId) {
+    // 超級管理員不受「只能動自己分店資料」限制，可以刪除/編輯任何分店的資料。
+    if (req.user.role !== 'super_admin' && row.store_id !== req.storeId) {
       return res.status(403).json({ success: false, message: '只能編輯或刪除自己分店建立的資料' });
     }
     req.resource = row; // 供後續 handler 取用（例如比對狀態是否有變更）
@@ -187,16 +188,18 @@ router.put('/deliveries/:id', attachStoreId, (req, res) => {
   const newStatus = status || '待配送';
 
   const isOwner = row.store_id === req.storeId;
+  const isSuperAdmin = req.user.role === 'super_admin';
   const canChangeStatus = canChangeDeliveryStatus(req);
   const statusChanged = newStatus !== row.status;
 
   if (statusChanged && !canChangeStatus) {
     return res.status(403).json({ success: false, message: '配送狀態只有和平店（總店）能變更' });
   }
-  if (!isOwner && !canChangeStatus) {
+  if (!isOwner && !isSuperAdmin && !canChangeStatus) {
     return res.status(403).json({ success: false, message: '只能編輯或刪除自己分店建立的資料' });
   }
-  if (!isOwner && canChangeStatus) {
+  // 超級管理員不受限制，可以完整編輯任何一筆配送單（內容+狀態）。
+  if (!isOwner && !isSuperAdmin && canChangeStatus) {
     // 不是自己分店的資料，只是有狀態控制權：只准變更狀態，內容欄位必須跟原本一致，避免誤改到別店的資料
     const contentUnchanged = delivery_time === row.delivery_time && v.location === row.location &&
       v.content === row.content && v.customer_name === row.customer_name && v.customer_contact === row.customer_contact &&
