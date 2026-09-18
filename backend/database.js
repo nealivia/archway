@@ -165,6 +165,7 @@ function initDatabase() {
       customer_name TEXT DEFAULT '',
       customer_contact TEXT DEFAULT '',
       status TEXT NOT NULL DEFAULT '待配送',
+      created_by TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -175,6 +176,7 @@ function initDatabase() {
       item_name TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT '缺貨',
       note TEXT DEFAULT '',
+      created_by TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -183,6 +185,7 @@ function initDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       store_id INTEGER NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
       message TEXT NOT NULL,
+      created_by TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -207,6 +210,11 @@ function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_board_status_log_created ON board_status_log(created_at);
     CREATE INDEX IF NOT EXISTS idx_board_status_log_store ON board_status_log(store_id);
   `);
+
+  // 佈告欄上傳者紀錄：舊版本的表沒有 created_by 欄位，補上去（新建立的表已經包含在上面的 CREATE TABLE 裡，這裡會直接因為欄位已存在而失敗，屬正常情況）
+  try { db.exec("ALTER TABLE board_deliveries ADD COLUMN created_by TEXT NOT NULL DEFAULT ''"); } catch (e) { /* 已存在 */ }
+  try { db.exec("ALTER TABLE board_stock ADD COLUMN created_by TEXT NOT NULL DEFAULT ''"); } catch (e) { /* 已存在 */ }
+  try { db.exec("ALTER TABLE board_comments ADD COLUMN created_by TEXT NOT NULL DEFAULT ''"); } catch (e) { /* 已存在 */ }
 
   // 初始化分店登入帳號（僅在該分店尚無帳號時建立，密碼隨機產生，只顯示一次）
   const boardUsernameMap = { '和平店': 'heping', '板橋店': 'banqiao', '樹林 Sika 展示店': 'shulin' };

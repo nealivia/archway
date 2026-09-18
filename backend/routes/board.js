@@ -103,9 +103,9 @@ router.post('/deliveries', requireStore, (req, res) => {
     return res.status(400).json({ success: false, message: '配送時間與地點為必填' });
   }
   const info = db.prepare(`
-    INSERT INTO board_deliveries (store_id, delivery_time, location, content, status, customer_name, customer_contact)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(req.storeId, delivery_time, location, content || '', status || '待配送', customer_name || '', customer_contact || '');
+    INSERT INTO board_deliveries (store_id, delivery_time, location, content, status, customer_name, customer_contact, created_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(req.storeId, delivery_time, location, content || '', status || '待配送', customer_name || '', customer_contact || '', req.user.username);
   res.status(201).json({ success: true, id: info.lastInsertRowid });
 });
 
@@ -147,9 +147,9 @@ router.post('/stock', requireStore, (req, res) => {
     return res.status(400).json({ success: false, message: '品項與狀態為必填' });
   }
   const info = db.prepare(`
-    INSERT INTO board_stock (store_id, item_name, status, note)
-    VALUES (?, ?, ?, ?)
-  `).run(req.storeId, item_name, status, note || '');
+    INSERT INTO board_stock (store_id, item_name, status, note, created_by)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(req.storeId, item_name, status, note || '', req.user.username);
   res.status(201).json({ success: true, id: info.lastInsertRowid });
 });
 
@@ -188,8 +188,8 @@ router.post('/comments', requireStore, (req, res) => {
   if (!message || !message.trim()) {
     return res.status(400).json({ success: false, message: '留言內容不可為空' });
   }
-  const info = db.prepare('INSERT INTO board_comments (store_id, message) VALUES (?, ?)')
-    .run(req.storeId, message.trim());
+  const info = db.prepare('INSERT INTO board_comments (store_id, message, created_by) VALUES (?, ?, ?)')
+    .run(req.storeId, message.trim(), req.user.username);
   res.status(201).json({ success: true, id: info.lastInsertRowid });
 });
 

@@ -320,7 +320,7 @@ function TodayOverviewTab() {
                 <div key={item.id} className="border border-gray-200 rounded-sm p-3"
                   style={{ borderLeft: `4px solid ${storeColor(item.store_id)}` }}>
                   <div className="flex justify-between items-baseline flex-wrap gap-1">
-                    <span className="text-sm font-semibold text-dark">{item.store_name}</span>
+                    <span className="text-sm font-semibold text-dark">{item.store_name}{item.created_by && <span className="text-[11px] text-gray-400 font-normal">・上傳者 {item.created_by}</span>}</span>
                     <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${badgeClass(item.status)}`}>{item.status}</span>
                   </div>
                   <p className="text-sm text-dark mt-1">📍 {item.location}</p>
@@ -531,7 +531,7 @@ function DeliveriesTab({ storeId, stores }) {
           <div key={item.id} className="border border-gray-200 rounded-sm p-4"
             style={{ borderLeft: `4px solid ${storeColor(item.store_id)}` }}>
             <div className="flex justify-between items-baseline flex-wrap gap-1">
-              <span className="text-sm font-semibold text-dark">{item.store_name}</span>
+              <span className="text-sm font-semibold text-dark">{item.store_name}{item.created_by && <span className="text-[11px] text-gray-400 font-normal">・上傳者 {item.created_by}</span>}</span>
               <span className="text-xs text-gray-400">{item.delivery_time.slice(0, 10)}・{periodInfo(periodOfDeliveryTime(item.delivery_time)).label}</span>
             </div>
             <span className={`inline-block mt-1.5 text-xs px-2.5 py-0.5 rounded-full font-medium ${badgeClass(item.status)}`}>{item.status}</span>
@@ -734,7 +734,7 @@ function StockTab({ storeId, stores }) {
         {list.map(item => (
           <div key={item.id} className={`border rounded-sm p-4 ${String(item.store_id) === String(storeId) ? 'border-l-4 border-l-green-500 border-gray-200' : 'border-gray-200'}`}>
             <div className="flex justify-between items-baseline flex-wrap gap-1">
-              <span className="text-sm font-semibold text-dark">{item.store_name}</span>
+              <span className="text-sm font-semibold text-dark">{item.store_name}{item.created_by && <span className="text-[11px] text-gray-400 font-normal">・上傳者 {item.created_by}</span>}</span>
               <span className="text-xs text-gray-400">更新：{fmtTime(item.updated_at)}</span>
             </div>
             <span className={`inline-block mt-1.5 text-xs px-2.5 py-0.5 rounded-full font-medium ${badgeClass(item.status)}`}>{item.status}</span>
@@ -804,7 +804,7 @@ function CommentsTab({ storeId }) {
         {list.map(item => (
           <div key={item.id} className={`border rounded-sm p-4 ${String(item.store_id) === String(storeId) ? 'border-l-4 border-l-green-500 border-gray-200' : 'border-gray-200'}`}>
             <div className="flex justify-between items-baseline flex-wrap gap-1">
-              <span className="text-sm font-semibold text-dark">{item.store_name}</span>
+              <span className="text-sm font-semibold text-dark">{item.store_name}{item.created_by && <span className="text-[11px] text-gray-400 font-normal">・上傳者 {item.created_by}</span>}</span>
               <span className="text-xs text-gray-400">{fmtTime(item.created_at)}</span>
             </div>
             <p className="text-sm text-dark mt-2 whitespace-pre-wrap">{item.message}</p>
@@ -845,12 +845,13 @@ function HistoryTab({ stores }) {
         api.get('/board/status-log', { params })
       ])
       const typeLabel = { delivery: '配送單', stock: '缺訂貨' }
+      const withUploader = (name, createdBy) => createdBy ? `${name}・上傳者 ${createdBy}` : name
       const rows = [
-        ...(deliveries.data || []).map(i => ({ type: '配送單', color: 'bg-blue-500', time: i.delivery_time, store: i.store_name,
+        ...(deliveries.data || []).map(i => ({ type: '配送單', color: 'bg-blue-500', time: i.delivery_time, store: withUploader(i.store_name, i.created_by),
           text: `📍 ${i.location} — ${i.status}${(i.customer_name || i.customer_contact) ? `\n👤 ${i.customer_name}${i.customer_contact ? '｜' + i.customer_contact : ''}` : ''}${i.content ? '\n' + i.content : ''}` })),
-        ...(stock.data || []).map(i => ({ type: '缺訂貨', color: 'bg-amber-500', time: i.updated_at, store: i.store_name,
+        ...(stock.data || []).map(i => ({ type: '缺訂貨', color: 'bg-amber-500', time: i.updated_at, store: withUploader(i.store_name, i.created_by),
           text: `🧾 ${i.item_name} — ${i.status}${i.note ? '\n備註：' + i.note : ''}` })),
-        ...(comments.data || []).map(i => ({ type: '留言', color: 'bg-green-500', time: i.created_at, store: i.store_name,
+        ...(comments.data || []).map(i => ({ type: '留言', color: 'bg-green-500', time: i.created_at, store: withUploader(i.store_name, i.created_by),
           text: i.message })),
         ...(statusLog.data || []).map(i => ({ type: '狀態變更', color: 'bg-purple-500', time: i.created_at, store: i.store_name,
           text: `${typeLabel[i.resource_type] || i.resource_type}狀態：${i.from_status || '（新建立）'} → ${i.to_status}（操作人：${i.changed_by}）` }))
