@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { initDatabase, cleanupOldBoardRecords } = require('./database');
+const { initDatabase, cleanupOldBoardRecords, autoRescheduleMissedDeliveries } = require('./database');
 
 // ── JWT_SECRET 強度驗證（啟動時檢查）────────────────────────────────────────
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -58,6 +58,11 @@ initDatabase();
 
 // 佈告欄歷史紀錄只保留一個月：每 24 小時自動清一次超過期限的資料
 setInterval(cleanupOldBoardRecords, 24 * 60 * 60 * 1000).unref();
+
+// 配送單逾時未出車自動改期：早上沒切成配送中→移到當天下午；下午沒切成配送中→移到下一個可配送日早上。
+// 每 10 分鐘檢查一次，啟動時也先跑一次（避免伺服器剛好在時段切換點重啟而漏檢查）。
+autoRescheduleMissedDeliveries();
+setInterval(autoRescheduleMissedDeliveries, 10 * 60 * 1000).unref();
 
 // Middleware
 app.use(cors());

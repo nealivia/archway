@@ -16,7 +16,7 @@ const TABS = [
 const DELIVERY_STATUSES = ['待配送', '配送中', '已送達']
 const DELIVERY_PERIODS = [
   { key: 'morning', label: '早上 08:00–12:00', short: '早', time: '08:00' },
-  { key: 'afternoon', label: '下午 13:30–17:00', short: '午', time: '13:30' }
+  { key: 'afternoon', label: '下午 13:30–16:00', short: '午', time: '13:30' }
 ]
 const MAX_PER_SLOT = 2
 function periodOfTime(hhmm) {

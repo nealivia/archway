@@ -300,4 +300,73 @@ function cleanupOldBoardRecords() {
   }
 }
 
-module.exports = { db, initDatabase, cleanupOldBoardRecords };
+// ── 配送單逾時自動改期 ──────────────────────────────────────────────────
+// 規則：早上時段（08:00–12:00）配送單如果到中午 12:00 還沒切換成「配送中」，
+// 自動移到當天下午時段（13:30–16:00）；下午時段如果到 16:00 還沒切換成「配送中」，
+// 自動移到下一個可配送日（跳過週六日）的早上時段。只處理仍是「待配送」的單，
+// 已經是「配送中」或「已送達」的不會被搬動。伺服器每 10 分鐘檢查一次。
+function periodOfDeliveryTimeInternal(dt) {
+  const hhmm = (dt || '').slice(11, 16);
+  return hhmm < '12:30' ? 'morning' : 'afternoon';
+}
+
+function periodCutoff(dateStr, period) {
+  return new Date(`${dateStr}T${period === 'morning' ? '12:00:00' : '16:00:00'}`);
+}
+
+function nextAvailableWeekday(dateStr) {
+  const d = new Date(`${dateStr}T00:00:00`);
+  do {
+    d.setDate(d.getDate() + 1);
+  } while (d.getDay() === 0 || d.getDay() === 6); // 跳過週六（6）、週日（0），週六日不配送
+  const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function periodLabel(date, period) {
+  return `${date} ${period === 'morning' ? '早上 08:00–12:00' : '下午 13:30–16:00'}`;
+}
+
+function autoRescheduleMissedDeliveries() {
+  try {
+    const now = new Date();
+    const rows = db.prepare(`SELECT id, delivery_time FROM board_deliveries WHERE status = '待配送'`).all();
+    const update = db.prepare(`UPDATE board_deliveries SET delivery_time = ?, updated_at = datetime('now') WHERE id = ?`);
+    const insertLog = db.prepare(`
+      INSERT INTO board_status_log (resource_type, resource_id, store_id, from_status, to_status, changed_by)
+      SELECT 'delivery', ?, store_id, ?, ?, '系統自動改期' FROM board_deliveries WHERE id = ?
+    `);
+    let movedCount = 0;
+    for (const row of rows) {
+      let date = (row.delivery_time || '').slice(0, 10);
+      let period = periodOfDeliveryTimeInternal(row.delivery_time);
+      if (!date) continue;
+      const fromLabel = periodLabel(date, period);
+      let moved = false;
+      let guard = 0; // 防止異常資料造成無窮迴圈
+      while (now >= periodCutoff(date, period) && guard < 60) {
+        guard++;
+        if (period === 'morning') {
+          period = 'afternoon'; // 當天下午
+        } else {
+          date = nextAvailableWeekday(date); // 下一個可配送日的早上
+          period = 'morning';
+        }
+        moved = true;
+      }
+      if (moved) {
+        const newTime = period === 'morning' ? '08:00' : '13:30';
+        update.run(`${date}T${newTime}`, row.id);
+        insertLog.run(row.id, fromLabel, periodLabel(date, period), row.id);
+        movedCount++;
+      }
+    }
+    if (movedCount > 0) {
+      console.log(`⏰ 已自動改期 ${movedCount} 筆逾時未出車的配送單`);
+    }
+  } catch (e) {
+    console.error('❌ 自動改期配送單失敗:', e.message);
+  }
+}
+
+module.exports = { db, initDatabase, cleanupOldBoardRecords, autoRescheduleMissedDeliveries };
