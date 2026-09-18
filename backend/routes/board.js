@@ -47,13 +47,24 @@ function ownerOnly(getRow) {
   };
 }
 
-// 狀態有變更時寫入變更紀錄（配送單 / 缺訂貨狀態共用）
-function logStatusChange(req, type, resourceId, fromStatus, toStatus) {
+// 狀態有變更時寫入變更紀錄（配送單 / 缺訂貨狀態共用）。storeId 用資源實際所屬的分店（不是操作者），
+// 這樣「依分店篩選」歷史紀錄時才會準確——例如和平店幫板橋店的配送單切換狀態，紀錄仍歸在板橋店底下。
+function logStatusChange(storeId, changedBy, type, resourceId, fromStatus, toStatus) {
   if (fromStatus === toStatus) return;
   db.prepare(`
     INSERT INTO board_status_log (resource_type, resource_id, store_id, from_status, to_status, changed_by)
     VALUES (?, ?, ?, ?, ?, ?)
-  `).run(type, resourceId, req.storeId, fromStatus, toStatus, req.user.username);
+  `).run(type, resourceId, storeId, fromStatus, toStatus, changedBy);
+}
+
+// 配送單「更改狀態」的控制權：所有配送都由和平店（總店）統一控制司機排程，所以只有和平店帳號
+// 或超級管理員可以切換配送狀態（待配送/配送中/已送達）；其他分店仍可以編輯或刪除自己送出的配送單內容。
+function getControlStoreId() {
+  const row = db.prepare("SELECT id FROM stores WHERE name = '和平店'").get();
+  return row ? row.id : null;
+}
+function canChangeDeliveryStatus(req) {
+  return req.user.role === 'super_admin' || req.storeId === getControlStoreId();
 }
 
 // alias：資料表在 SQL 裡的別名（例如 'd'、'c'、'l'）。stores 表本身也有 created_at 欄位，
@@ -140,21 +151,46 @@ router.put('/deliveries/reorder', (req, res) => {
   res.json({ success: true });
 });
 
-router.put('/deliveries/:id', requireStore,
-  ownerOnly(req => db.prepare('SELECT * FROM board_deliveries WHERE id = ?').get(req.params.id)),
-  (req, res) => {
-    const { delivery_time, status } = req.body;
-    const v = validateDeliveryPayload(req.body);
-    if (v.error) return res.status(400).json({ success: false, message: v.error });
-    const newStatus = status || '待配送';
-    db.prepare(`
-      UPDATE board_deliveries SET delivery_time = ?, location = ?, content = ?, status = ?,
-        customer_name = ?, customer_contact = ?, delivery_type = ?, transfer_to_store_id = ?, updated_at = datetime('now')
-      WHERE id = ?
-    `).run(delivery_time, v.location, v.content, newStatus, v.customer_name, v.customer_contact, v.delivery_type, v.transfer_to_store_id, req.params.id);
-    logStatusChange(req, 'delivery', req.params.id, req.resource.status, newStatus);
-    res.json({ success: true, message: '已更新' });
-  });
+// 配送單編輯：內容（地點/客戶資訊/調撥目標等）只有建立的那家分店能改，跟以前一樣；
+// 但「狀態」欄位比較特別——全公司配送都由和平店統一控制司機排程，所以狀態變更只有和平店／超級管理員能做，
+// 就算是和平店要去改別家分店送出的單，也只准動狀態，其他內容一律不能碰。
+router.put('/deliveries/:id', requireStore, (req, res) => {
+  const row = db.prepare('SELECT * FROM board_deliveries WHERE id = ?').get(req.params.id);
+  if (!row) return res.status(404).json({ success: false, message: '找不到資料' });
+
+  const { delivery_time, status } = req.body;
+  const v = validateDeliveryPayload(req.body);
+  if (v.error) return res.status(400).json({ success: false, message: v.error });
+  const newStatus = status || '待配送';
+
+  const isOwner = row.store_id === req.storeId;
+  const canChangeStatus = canChangeDeliveryStatus(req);
+  const statusChanged = newStatus !== row.status;
+
+  if (statusChanged && !canChangeStatus) {
+    return res.status(403).json({ success: false, message: '配送狀態只有和平店（總店）能變更' });
+  }
+  if (!isOwner && !canChangeStatus) {
+    return res.status(403).json({ success: false, message: '只能編輯或刪除自己分店建立的資料' });
+  }
+  if (!isOwner && canChangeStatus) {
+    // 不是自己分店的資料，只是有狀態控制權：只准變更狀態，內容欄位必須跟原本一致，避免誤改到別店的資料
+    const contentUnchanged = delivery_time === row.delivery_time && v.location === row.location &&
+      v.content === row.content && v.customer_name === row.customer_name && v.customer_contact === row.customer_contact &&
+      v.delivery_type === row.delivery_type && v.transfer_to_store_id === row.transfer_to_store_id;
+    if (!contentUnchanged) {
+      return res.status(403).json({ success: false, message: '只能變更這筆非本店配送單的狀態，其他內容不可修改' });
+    }
+  }
+
+  db.prepare(`
+    UPDATE board_deliveries SET delivery_time = ?, location = ?, content = ?, status = ?,
+      customer_name = ?, customer_contact = ?, delivery_type = ?, transfer_to_store_id = ?, updated_at = datetime('now')
+    WHERE id = ?
+  `).run(delivery_time, v.location, v.content, newStatus, v.customer_name, v.customer_contact, v.delivery_type, v.transfer_to_store_id, req.params.id);
+  logStatusChange(row.store_id, req.user.username, 'delivery', req.params.id, row.status, newStatus);
+  res.json({ success: true, message: '已更新' });
+});
 
 router.delete('/deliveries/:id', requireStore,
   ownerOnly(req => db.prepare('SELECT * FROM board_deliveries WHERE id = ?').get(req.params.id)),
@@ -194,7 +230,7 @@ router.put('/stock/:id', requireStore,
       UPDATE board_stock SET item_name = ?, status = ?, note = ?, updated_at = datetime('now')
       WHERE id = ?
     `).run(item_name, status, note || '', req.params.id);
-    logStatusChange(req, 'stock', req.params.id, req.resource.status, status);
+    logStatusChange(req.storeId, req.user.username, 'stock', req.params.id, req.resource.status, status);
     res.json({ success: true, message: '已更新' });
   });
 

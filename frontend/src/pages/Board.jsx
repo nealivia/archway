@@ -195,6 +195,10 @@ export default function Board() {
 
   const storeId = isStoreAccount ? String(user.store_id) : pickedStoreId
 
+  // 所有配送都由和平店（總店）統一控制司機排程，只有和平店帳號／超級管理員能切換配送狀態
+  const controlStoreId = stores.find(s => s.name === '和平店')?.id
+  const canChangeDeliveryStatus = user?.role === 'super_admin' || (!!controlStoreId && String(storeId) === String(controlStoreId))
+
   const chooseStore = (id) => {
     setPickedStoreId(String(id))
     localStorage.setItem(STORE_KEY, String(id))
@@ -254,7 +258,7 @@ export default function Board() {
       </div>
 
       {activeTab === 'today' && <TodayOverviewTab stores={stores} />}
-      {activeTab === 'deliveries' && <DeliveriesTab storeId={storeId} stores={stores} />}
+      {activeTab === 'deliveries' && <DeliveriesTab storeId={storeId} stores={stores} canChangeStatus={canChangeDeliveryStatus} />}
       {activeTab === 'stock' && <StockTab storeId={storeId} stores={stores} />}
       {activeTab === 'comments' && <CommentsTab storeId={storeId} />}
       {activeTab === 'history' && <HistoryTab stores={stores} />}
@@ -381,7 +385,7 @@ function storeName(stores, id) {
   return stores.find(s => String(s.id) === String(id))?.name || ''
 }
 
-function DeliveriesTab({ storeId, stores }) {
+function DeliveriesTab({ storeId, stores, canChangeStatus }) {
   const [list, setList] = useState([])
   const [filterStore, setFilterStore] = useState('')
   const [form, setForm] = useState(EMPTY_DELIVERY_FORM)
@@ -600,11 +604,17 @@ function DeliveriesTab({ storeId, stores }) {
                 )}
               </>
             )}
-            {String(item.store_id) === String(storeId) && (
+            {(canChangeStatus || String(item.store_id) === String(storeId)) && (
               <div className="flex gap-4 mt-2">
-                <button onClick={() => cycleStatus(item)} className="text-xs text-gray-500 underline py-1.5 px-0.5">切換狀態</button>
-                <button onClick={() => startEdit(item)} className="text-xs text-primary underline py-1.5 px-0.5">編輯</button>
-                <button onClick={() => remove(item)} className="text-xs text-red-500 underline py-1.5 px-0.5">刪除</button>
+                {canChangeStatus && (
+                  <button onClick={() => cycleStatus(item)} className="text-xs text-gray-500 underline py-1.5 px-0.5">切換狀態</button>
+                )}
+                {String(item.store_id) === String(storeId) && (
+                  <>
+                    <button onClick={() => startEdit(item)} className="text-xs text-primary underline py-1.5 px-0.5">編輯</button>
+                    <button onClick={() => remove(item)} className="text-xs text-red-500 underline py-1.5 px-0.5">刪除</button>
+                  </>
+                )}
               </div>
             )}
           </div>
