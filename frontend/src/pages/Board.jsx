@@ -243,19 +243,20 @@ function DeliveriesTab({ storeId, stores }) {
         </select>
       </div>
 
-      {/* 月曆格狀檢視 */}
+      {/* 月曆格狀檢視（週六日不配送，反灰標示） */}
       <div className="grid grid-cols-7 gap-px bg-gray-200 border border-gray-200 rounded-sm overflow-hidden text-xs">
-        {WEEKDAYS.map(w => (
-          <div key={w} className="bg-gray-50 text-center py-1.5 text-gray-500 font-medium">{w}</div>
+        {WEEKDAYS.map((w, i) => (
+          <div key={w} className={`text-center py-1.5 font-medium ${(i === 0 || i === 6) ? 'bg-gray-200 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>{w}</div>
         ))}
         {days.map((d, idx) => {
           const k = dateKey(d)
           const items = byDate[k] || []
           const inMonth = d.getMonth() === viewMonth.getMonth()
+          const isWeekend = d.getDay() === 0 || d.getDay() === 6
           return (
             <div key={idx} onClick={() => pickDay(d)}
-              className={`bg-white min-h-[64px] p-1 cursor-pointer hover:bg-gray-50 ${k === selectedDate ? 'ring-2 ring-inset ring-primary' : ''}`}>
-              <div className={`text-[11px] mb-1 ${inMonth ? (k === today ? 'text-primary font-bold' : 'text-gray-600') : 'text-gray-300'}`}>
+              className={`min-h-[64px] p-1 cursor-pointer ${isWeekend ? 'bg-gray-100 hover:bg-gray-200' : 'bg-white hover:bg-gray-50'} ${k === selectedDate ? 'ring-2 ring-inset ring-primary' : ''}`}>
+              <div className={`text-[11px] mb-1 ${!inMonth ? 'text-gray-300' : isWeekend ? 'text-gray-400' : (k === today ? 'text-primary font-bold' : 'text-gray-600')}`}>
                 {d.getDate()}
               </div>
               <div className="space-y-0.5">
