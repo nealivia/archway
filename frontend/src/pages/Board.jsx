@@ -397,7 +397,7 @@ function DeliveriesTab({ storeId, stores, canChangeStatus }) {
   // 調撥目標清單：分店 + 倉庫（例如泰山倉、富友倉），跟後端驗證用同一份名單
   const [transferTargets, setTransferTargets] = useState([])
   useEffect(() => {
-    api.get('/board/deliveries/transfer-targets').then(r => setTransferTargets(r.data || [])).catch(() => {})
+    api.get('/board/transfer-targets').then(r => setTransferTargets(r.data || [])).catch(() => toast.error('調撥目標清單載入失敗'))
   }, [])
   const [editingId, setEditingId] = useState(null)
   const [saving, setSaving] = useState(false)
