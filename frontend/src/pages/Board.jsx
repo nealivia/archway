@@ -253,7 +253,7 @@ export default function Board() {
         ))}
       </div>
 
-      {activeTab === 'today' && <TodayOverviewTab />}
+      {activeTab === 'today' && <TodayOverviewTab stores={stores} />}
       {activeTab === 'deliveries' && <DeliveriesTab storeId={storeId} stores={stores} />}
       {activeTab === 'stock' && <StockTab storeId={storeId} stores={stores} />}
       {activeTab === 'comments' && <CommentsTab storeId={storeId} />}
@@ -263,7 +263,7 @@ export default function Board() {
 }
 
 // ================= 今日配送總覽（給司機看的整合路線表，合併全分店、依時段/時間排序） =================
-function TodayOverviewTab() {
+function TodayOverviewTab({ stores }) {
   const [date, setDate] = useState(() => dateKey(new Date()))
   const [list, setList] = useState([])
 
@@ -352,11 +352,17 @@ function TodayOverviewTab() {
                       <span className="text-sm font-semibold text-dark">{item.store_name}{item.created_by && <span className="text-[11px] text-gray-400 font-normal">・上傳者 {item.created_by}</span>}</span>
                       <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${badgeClass(item.status)}`}>{item.status}</span>
                     </div>
-                    <p className="text-sm text-dark mt-1">📍 {item.location}</p>
-                    {(item.customer_name || item.customer_contact) && (
-                      <p className="text-xs text-gray-500 mt-0.5">👤 {item.customer_name}{item.customer_contact ? `｜${item.customer_contact}` : ''}</p>
+                    {item.delivery_type === '分店調撥' ? (
+                      <p className="text-sm text-dark mt-1">🔄 調撥至 {storeName(stores, item.transfer_to_store_id)}</p>
+                    ) : (
+                      <>
+                        <p className="text-sm text-dark mt-1">📍 {item.location}</p>
+                        {(item.customer_name || item.customer_contact) && (
+                          <p className="text-xs text-gray-500 mt-0.5">👤 {item.customer_name}{item.customer_contact ? `｜${item.customer_contact}` : ''}</p>
+                        )}
+                        {item.content && <p className="text-xs text-gray-500 mt-0.5 whitespace-pre-wrap">{item.content}</p>}
+                      </>
                     )}
-                    {item.content && <p className="text-xs text-gray-500 mt-0.5 whitespace-pre-wrap">{item.content}</p>}
                   </div>
                 </div>
               ))}
@@ -369,7 +375,11 @@ function TodayOverviewTab() {
 }
 
 // ================= 配送單（行事曆檢視） =================
-const EMPTY_DELIVERY_FORM = { delivery_date: '', period: 'morning', location: '', content: '', status: '待配送', customer_name: '', customer_contact: '' }
+const DELIVERY_TYPES = ['客人配送', '分店調撥']
+const EMPTY_DELIVERY_FORM = { delivery_date: '', period: 'morning', delivery_type: '客人配送', location: '', content: '', status: '待配送', customer_name: '', customer_contact: '', transfer_to_store_id: '' }
+function storeName(stores, id) {
+  return stores.find(s => String(s.id) === String(id))?.name || ''
+}
 
 function DeliveriesTab({ storeId, stores }) {
   const [list, setList] = useState([])
@@ -414,7 +424,12 @@ function DeliveriesTab({ storeId, stores }) {
 
   const submit = async (e) => {
     e.preventDefault()
-    if (!form.delivery_date || !form.location) return toast.error('配送日期與地點為必填')
+    if (!form.delivery_date) return toast.error('配送日期為必填')
+    if (form.delivery_type === '分店調撥') {
+      if (!form.transfer_to_store_id) return toast.error('請選擇調撥目標分店')
+    } else if (!form.location) {
+      return toast.error('配送地點為必填')
+    }
     let existing = slotCount
     try {
       const r = await api.get('/board/deliveries/slot-count', { params: { date: form.delivery_date, period: form.period, exclude: editingId || '' } })
@@ -426,14 +441,22 @@ function DeliveriesTab({ storeId, stores }) {
     }
     setSaving(true)
     try {
-      const payload = {
-        delivery_time: `${form.delivery_date}T${periodInfo(form.period).time}`,
-        location: form.location,
-        content: form.content,
-        status: form.status,
-        customer_name: form.customer_name,
-        customer_contact: form.customer_contact
-      }
+      const payload = form.delivery_type === '分店調撥'
+        ? {
+            delivery_time: `${form.delivery_date}T${periodInfo(form.period).time}`,
+            status: form.status,
+            delivery_type: '分店調撥',
+            transfer_to_store_id: form.transfer_to_store_id
+          }
+        : {
+            delivery_time: `${form.delivery_date}T${periodInfo(form.period).time}`,
+            location: form.location,
+            content: form.content,
+            status: form.status,
+            customer_name: form.customer_name,
+            customer_contact: form.customer_contact,
+            delivery_type: '客人配送'
+          }
       if (editingId) {
         await api.put(`/board/deliveries/${editingId}`, payload, withStore(storeId))
         toast.success('已更新配送單')
@@ -453,11 +476,13 @@ function DeliveriesTab({ storeId, stores }) {
     setForm({
       delivery_date: (item.delivery_time || '').slice(0, 10),
       period: periodOfDeliveryTime(item.delivery_time),
-      location: item.location,
+      delivery_type: item.delivery_type === '分店調撥' ? '分店調撥' : '客人配送',
+      location: item.location || '',
       content: item.content || '',
       status: item.status,
       customer_name: item.customer_name || '',
-      customer_contact: item.customer_contact || ''
+      customer_contact: item.customer_contact || '',
+      transfer_to_store_id: item.transfer_to_store_id || ''
     })
   }
 
@@ -533,7 +558,7 @@ function DeliveriesTab({ storeId, stores }) {
                 {items.slice(0, 2).map(it => (
                   <div key={it.id} className="truncate text-white rounded-sm px-1 py-0.5 text-[10px]"
                     style={{ background: storeColor(it.store_id) }}>
-                    {periodInfo(periodOfDeliveryTime(it.delivery_time)).short} {it.store_name}
+                    {periodInfo(periodOfDeliveryTime(it.delivery_time)).short} {it.delivery_type === '分店調撥' ? '🔄' : ''}{it.store_name}
                   </div>
                 ))}
                 {items.length > 2 && <div className="text-[10px] text-gray-400">+{items.length - 2} 筆</div>}
@@ -565,9 +590,15 @@ function DeliveriesTab({ storeId, stores }) {
               <span className="text-xs text-gray-400">{item.delivery_time.slice(0, 10)}・{periodInfo(periodOfDeliveryTime(item.delivery_time)).label}</span>
             </div>
             <span className={`inline-block mt-1.5 text-xs px-2.5 py-0.5 rounded-full font-medium ${badgeClass(item.status)}`}>{item.status}</span>
-            <p className="text-sm text-dark mt-2 whitespace-pre-wrap">📍 {item.location}{item.content ? `\n${item.content}` : ''}</p>
-            {(item.customer_name || item.customer_contact) && (
-              <p className="text-xs text-gray-500 mt-1">👤 {item.customer_name}{item.customer_contact ? `｜${item.customer_contact}` : ''}</p>
+            {item.delivery_type === '分店調撥' ? (
+              <p className="text-sm text-dark mt-2">🔄 調撥至 {storeName(stores, item.transfer_to_store_id)}</p>
+            ) : (
+              <>
+                <p className="text-sm text-dark mt-2 whitespace-pre-wrap">📍 {item.location}{item.content ? `\n${item.content}` : ''}</p>
+                {(item.customer_name || item.customer_contact) && (
+                  <p className="text-xs text-gray-500 mt-1">👤 {item.customer_name}{item.customer_contact ? `｜${item.customer_contact}` : ''}</p>
+                )}
+              </>
             )}
             {String(item.store_id) === String(storeId) && (
               <div className="flex gap-4 mt-2">
@@ -581,7 +612,20 @@ function DeliveriesTab({ storeId, stores }) {
       </div>
 
       <form onSubmit={submit} className="bg-white border border-gray-200 rounded-sm p-5 mt-6 space-y-3">
-        <h2 className="font-semibold text-dark text-sm mb-1">{editingId ? '編輯配送單' : '新增配送單（與客人約定的送貨時間）'}</h2>
+        <h2 className="font-semibold text-dark text-sm mb-1">{editingId ? '編輯配送單' : '新增配送單'}</h2>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">類型</label>
+          <div className="flex gap-2">
+            {DELIVERY_TYPES.map(t => (
+              <button key={t} type="button" onClick={() => setForm(f => ({ ...f, delivery_type: t }))}
+                className={`flex-1 text-sm px-3 py-2 rounded-sm border transition-colors ${
+                  form.delivery_type === t ? 'border-primary text-primary bg-primary/5 font-medium' : 'border-gray-200 text-gray-500'
+                }`}>
+                {t === '客人配送' ? '🚚 配送貨物給客人' : '🔄 分店調撥'}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="grid md:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs text-gray-500 mb-1">配送日期</label>
@@ -597,6 +641,18 @@ function DeliveriesTab({ storeId, stores }) {
             </select>
           </div>
         </div>
+
+        {form.delivery_type === '分店調撥' ? (
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">調撥目標分店</label>
+            <select value={form.transfer_to_store_id} onChange={e => setForm(f => ({ ...f, transfer_to_store_id: e.target.value }))}
+              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary">
+              <option value="">請選擇分店</option>
+              {stores.filter(s => String(s.id) !== String(storeId)).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+        ) : null}
+
         <div className="grid md:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs text-gray-500 mb-1">狀態</label>
@@ -613,32 +669,37 @@ function DeliveriesTab({ storeId, stores }) {
             </div>
           )}
         </div>
-        <div>
-          <label className="block text-xs text-gray-500 mb-1">地點</label>
-          <input value={form.location} placeholder="例如：客戶工地 / 中山店 後門收貨區"
-            onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-            className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
-        </div>
-        <div className="grid md:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">客戶名稱</label>
-            <input value={form.customer_name} placeholder="例如：王先生"
-              onChange={e => setForm(f => ({ ...f, customer_name: e.target.value }))}
-              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">客戶聯絡方式</label>
-            <input value={form.customer_contact} placeholder="例如：0912-345-678"
-              onChange={e => setForm(f => ({ ...f, customer_contact: e.target.value }))}
-              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
-          </div>
-        </div>
-        <div>
-          <label className="block text-xs text-gray-500 mb-1">貨物內容</label>
-          <textarea value={form.content} rows={2} placeholder="例如：防水塗料 5桶、矽利康 2箱"
-            onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
-            className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary resize-none" />
-        </div>
+
+        {form.delivery_type === '客人配送' && (
+          <>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">地點</label>
+              <input value={form.location} placeholder="例如：客戶工地 / 中山店 後門收貨區"
+                onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
+                className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+            </div>
+            <div className="grid md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">客戶名稱</label>
+                <input value={form.customer_name} placeholder="例如：王先生"
+                  onChange={e => setForm(f => ({ ...f, customer_name: e.target.value }))}
+                  className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">客戶聯絡方式</label>
+                <input value={form.customer_contact} placeholder="例如：0912-345-678"
+                  onChange={e => setForm(f => ({ ...f, customer_contact: e.target.value }))}
+                  className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">貨物內容</label>
+              <textarea value={form.content} rows={2} placeholder="例如：防水塗料 5桶、矽利康 2箱"
+                onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
+                className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary resize-none" />
+            </div>
+          </>
+        )}
         <div className="flex gap-3">
           <button disabled={saving} className="btn-primary text-sm py-2 px-6 disabled:opacity-50">
             {saving ? '儲存中...' : (editingId ? '更新配送單' : '送出配送單')}
@@ -877,8 +938,10 @@ function HistoryTab({ stores }) {
       const typeLabel = { delivery: '配送單', stock: '缺訂貨' }
       const withUploader = (name, createdBy) => createdBy ? `${name}・上傳者 ${createdBy}` : name
       const rows = [
-        ...(deliveries.data || []).map(i => ({ type: '配送單', color: 'bg-blue-500', time: i.delivery_time, store: withUploader(i.store_name, i.created_by),
-          text: `📍 ${i.location} — ${i.status}${(i.customer_name || i.customer_contact) ? `\n👤 ${i.customer_name}${i.customer_contact ? '｜' + i.customer_contact : ''}` : ''}${i.content ? '\n' + i.content : ''}` })),
+        ...(deliveries.data || []).map(i => ({ type: i.delivery_type === '分店調撥' ? '分店調撥' : '配送單', color: i.delivery_type === '分店調撥' ? 'bg-cyan-600' : 'bg-blue-500', time: i.delivery_time, store: withUploader(i.store_name, i.created_by),
+          text: i.delivery_type === '分店調撥'
+            ? `🔄 調撥至 ${storeName(stores, i.transfer_to_store_id)} — ${i.status}`
+            : `📍 ${i.location} — ${i.status}${(i.customer_name || i.customer_contact) ? `\n👤 ${i.customer_name}${i.customer_contact ? '｜' + i.customer_contact : ''}` : ''}${i.content ? '\n' + i.content : ''}` })),
         ...(stock.data || []).map(i => ({ type: '缺訂貨', color: 'bg-amber-500', time: i.updated_at, store: withUploader(i.store_name, i.created_by),
           text: `🧾 ${i.item_name} — ${i.status}${i.note ? '\n備註：' + i.note : ''}` })),
         ...(comments.data || []).map(i => ({ type: '留言', color: 'bg-green-500', time: i.created_at, store: withUploader(i.store_name, i.created_by),

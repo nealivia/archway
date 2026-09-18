@@ -97,15 +97,34 @@ router.get('/deliveries/slot-count', (req, res) => {
   res.json({ success: true, count });
 });
 
-router.post('/deliveries', requireStore, (req, res) => {
-  const { delivery_time, location, content, status, customer_name, customer_contact } = req.body;
-  if (!delivery_time || !location) {
-    return res.status(400).json({ success: false, message: '配送時間與地點為必填' });
+// 配送單分兩種：'客人配送'（要填地點/客戶資訊）跟 '分店調撥'（只需要目標分店跟時間，其他欄位不必填）
+function validateDeliveryPayload(body) {
+  const delivery_type = body.delivery_type === '分店調撥' ? '分店調撥' : '客人配送';
+  if (!body.delivery_time) return { error: '配送時間為必填' };
+  if (delivery_type === '分店調撥') {
+    if (!body.transfer_to_store_id) return { error: '請選擇調撥目標分店' };
+  } else {
+    if (!body.location) return { error: '配送地點為必填' };
   }
+  return {
+    delivery_type,
+    location: delivery_type === '分店調撥' ? '' : (body.location || ''),
+    content: delivery_type === '分店調撥' ? '' : (body.content || ''),
+    customer_name: delivery_type === '分店調撥' ? '' : (body.customer_name || ''),
+    customer_contact: delivery_type === '分店調撥' ? '' : (body.customer_contact || ''),
+    transfer_to_store_id: delivery_type === '分店調撥' ? parseInt(body.transfer_to_store_id, 10) : null
+  };
+}
+
+router.post('/deliveries', requireStore, (req, res) => {
+  const { delivery_time, status } = req.body;
+  const v = validateDeliveryPayload(req.body);
+  if (v.error) return res.status(400).json({ success: false, message: v.error });
   const info = db.prepare(`
-    INSERT INTO board_deliveries (store_id, delivery_time, location, content, status, customer_name, customer_contact, created_by)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(req.storeId, delivery_time, location, content || '', status || '待配送', customer_name || '', customer_contact || '', req.user.username);
+    INSERT INTO board_deliveries
+      (store_id, delivery_time, location, content, status, customer_name, customer_contact, created_by, delivery_type, transfer_to_store_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(req.storeId, delivery_time, v.location, v.content, status || '待配送', v.customer_name, v.customer_contact, req.user.username, v.delivery_type, v.transfer_to_store_id);
   res.status(201).json({ success: true, id: info.lastInsertRowid });
 });
 
@@ -124,13 +143,15 @@ router.put('/deliveries/reorder', (req, res) => {
 router.put('/deliveries/:id', requireStore,
   ownerOnly(req => db.prepare('SELECT * FROM board_deliveries WHERE id = ?').get(req.params.id)),
   (req, res) => {
-    const { delivery_time, location, content, status, customer_name, customer_contact } = req.body;
+    const { delivery_time, status } = req.body;
+    const v = validateDeliveryPayload(req.body);
+    if (v.error) return res.status(400).json({ success: false, message: v.error });
     const newStatus = status || '待配送';
     db.prepare(`
       UPDATE board_deliveries SET delivery_time = ?, location = ?, content = ?, status = ?,
-        customer_name = ?, customer_contact = ?, updated_at = datetime('now')
+        customer_name = ?, customer_contact = ?, delivery_type = ?, transfer_to_store_id = ?, updated_at = datetime('now')
       WHERE id = ?
-    `).run(delivery_time, location, content || '', newStatus, customer_name || '', customer_contact || '', req.params.id);
+    `).run(delivery_time, v.location, v.content, newStatus, v.customer_name, v.customer_contact, v.delivery_type, v.transfer_to_store_id, req.params.id);
     logStatusChange(req, 'delivery', req.params.id, req.resource.status, newStatus);
     res.json({ success: true, message: '已更新' });
   });
