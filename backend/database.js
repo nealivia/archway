@@ -370,8 +370,11 @@ function periodOfDeliveryTimeInternal(dt) {
   return hhmm < '12:30' ? 'morning' : 'afternoon';
 }
 
+// 這裡一定要明確指定 +08:00（台灣時區），不能寫沒有時區的naive字串——
+// 沒指定時區的日期字串會被當成「伺服器系統時區」的時間解讀，Railway 的容器預設通常是 UTC，
+// 會讓 16:00 被誤判成 UTC 16:00（等於台灣時間半夜 00:00），導致下午配送單要晚 8 小時才會被判定逾時。
 function periodCutoff(dateStr, period) {
-  return new Date(`${dateStr}T${period === 'morning' ? '12:00:00' : '16:00:00'}`);
+  return new Date(`${dateStr}T${period === 'morning' ? '12:00:00' : '16:00:00'}+08:00`);
 }
 
 function nextAvailableWeekday(dateStr) {
