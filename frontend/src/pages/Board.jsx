@@ -12,6 +12,21 @@ const TABS = [
 ]
 
 const DELIVERY_STATUSES = ['待配送', '配送中', '已送達']
+const DELIVERY_PERIODS = [
+  { key: 'morning', label: '早上 08:00–12:00', short: '早', time: '08:00' },
+  { key: 'afternoon', label: '下午 13:30–17:00', short: '午', time: '13:30' }
+]
+const MAX_PER_SLOT = 2
+function periodOfTime(hhmm) {
+  // 08:00~11:59 視為早上，其餘（含舊資料的自由時間）視為下午
+  return hhmm < '12:30' ? 'morning' : 'afternoon'
+}
+function periodOfDeliveryTime(dt) {
+  return periodOfTime((dt || '').slice(11, 16))
+}
+function periodInfo(key) {
+  return DELIVERY_PERIODS.find(p => p.key === key) || DELIVERY_PERIODS[0]
+}
 const STOCK_STATUSES = ['缺貨', '已叫貨待補', '已到貨']
 const STORE_COLORS = ['#E8000B', '#185FA5', '#0F6E56', '#854F0B', '#534AB7', '#993C1D', '#3B6D11', '#993556']
 const storeColor = (id) => STORE_COLORS[Number(id) % STORE_COLORS.length]
@@ -130,7 +145,7 @@ export default function Board() {
 }
 
 // ================= 配送單（行事曆檢視） =================
-const EMPTY_DELIVERY_FORM = { delivery_time: '', location: '', content: '', status: '待配送', customer_name: '', customer_contact: '' }
+const EMPTY_DELIVERY_FORM = { delivery_date: '', period: 'morning', location: '', content: '', status: '待配送', customer_name: '', customer_contact: '' }
 
 function DeliveriesTab({ storeId, stores }) {
   const [list, setList] = useState([])
@@ -160,16 +175,39 @@ function DeliveriesTab({ storeId, stores }) {
     return acc
   }, {})
 
+  // 同一分店、同一天、同一時段已經有幾筆配送（編輯時不算自己這筆）
+  const countInSlot = (date, period, excludeId) => {
+    return list.filter(i =>
+      String(i.store_id) === String(storeId) &&
+      (i.delivery_time || '').slice(0, 10) === date &&
+      periodOfDeliveryTime(i.delivery_time) === period &&
+      i.id !== excludeId
+    ).length
+  }
+
   const submit = async (e) => {
     e.preventDefault()
-    if (!form.delivery_time || !form.location) return toast.error('配送時間與地點為必填')
+    if (!form.delivery_date || !form.location) return toast.error('配送日期與地點為必填')
+    const existing = countInSlot(form.delivery_date, form.period, editingId)
+    if (existing >= MAX_PER_SLOT) {
+      const p = periodInfo(form.period)
+      if (!confirm(`⚠️ ${form.delivery_date}「${p.label}」時段已經有 ${existing} 筆配送，確定仍要新增嗎？`)) return
+    }
     setSaving(true)
     try {
+      const payload = {
+        delivery_time: `${form.delivery_date}T${periodInfo(form.period).time}`,
+        location: form.location,
+        content: form.content,
+        status: form.status,
+        customer_name: form.customer_name,
+        customer_contact: form.customer_contact
+      }
       if (editingId) {
-        await api.put(`/board/deliveries/${editingId}`, form, withStore(storeId))
+        await api.put(`/board/deliveries/${editingId}`, payload, withStore(storeId))
         toast.success('已更新配送單')
       } else {
-        await api.post('/board/deliveries', form, withStore(storeId))
+        await api.post('/board/deliveries', payload, withStore(storeId))
         toast.success('已新增配送單')
       }
       setForm(EMPTY_DELIVERY_FORM)
@@ -182,7 +220,8 @@ function DeliveriesTab({ storeId, stores }) {
   const startEdit = (item) => {
     setEditingId(item.id)
     setForm({
-      delivery_time: item.delivery_time,
+      delivery_date: (item.delivery_time || '').slice(0, 10),
+      period: periodOfDeliveryTime(item.delivery_time),
       location: item.location,
       content: item.content || '',
       status: item.status,
@@ -218,7 +257,7 @@ function DeliveriesTab({ storeId, stores }) {
   const pickDay = (d) => {
     const k = dateKey(d)
     setSelectedDate(k)
-    if (!editingId) setForm(f => ({ ...f, delivery_time: f.delivery_time ? f.delivery_time : `${k}T09:00` }))
+    if (!editingId) setForm(f => ({ ...f, delivery_date: f.delivery_date || k }))
   }
 
   const today = dateKey(new Date())
@@ -263,7 +302,7 @@ function DeliveriesTab({ storeId, stores }) {
                 {items.slice(0, 2).map(it => (
                   <div key={it.id} className="truncate text-white rounded-sm px-1 py-0.5 text-[10px]"
                     style={{ background: storeColor(it.store_id) }}>
-                    {it.delivery_time.slice(11, 16)} {it.store_name}
+                    {periodInfo(periodOfDeliveryTime(it.delivery_time)).short} {it.store_name}
                   </div>
                 ))}
                 {items.length > 2 && <div className="text-[10px] text-gray-400">+{items.length - 2} 筆</div>}
@@ -292,7 +331,7 @@ function DeliveriesTab({ storeId, stores }) {
             style={{ borderLeft: `4px solid ${storeColor(item.store_id)}` }}>
             <div className="flex justify-between items-baseline flex-wrap gap-1">
               <span className="text-sm font-semibold text-dark">{item.store_name}</span>
-              <span className="text-xs text-gray-400">{fmtTime(item.delivery_time)}</span>
+              <span className="text-xs text-gray-400">{item.delivery_time.slice(0, 10)}・{periodInfo(periodOfDeliveryTime(item.delivery_time)).label}</span>
             </div>
             <span className={`inline-block mt-1.5 text-xs px-2.5 py-0.5 rounded-full font-medium ${badgeClass(item.status)}`}>{item.status}</span>
             <p className="text-sm text-dark mt-2 whitespace-pre-wrap">📍 {item.location}{item.content ? `\n${item.content}` : ''}</p>
@@ -314,11 +353,20 @@ function DeliveriesTab({ storeId, stores }) {
         <h2 className="font-semibold text-dark text-sm mb-1">{editingId ? '編輯配送單' : '新增配送單（與客人約定的送貨時間）'}</h2>
         <div className="grid md:grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">配送時間</label>
-            <input type="datetime-local" value={form.delivery_time}
-              onChange={e => setForm(f => ({ ...f, delivery_time: e.target.value }))}
+            <label className="block text-xs text-gray-500 mb-1">配送日期</label>
+            <input type="date" value={form.delivery_date}
+              onChange={e => setForm(f => ({ ...f, delivery_date: e.target.value }))}
               className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
           </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">配送時段</label>
+            <select value={form.period} onChange={e => setForm(f => ({ ...f, period: e.target.value }))}
+              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary">
+              {DELIVERY_PERIODS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="grid md:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs text-gray-500 mb-1">狀態</label>
             <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
@@ -326,6 +374,13 @@ function DeliveriesTab({ storeId, stores }) {
               {DELIVERY_STATUSES.map(s => <option key={s}>{s}</option>)}
             </select>
           </div>
+          {form.delivery_date && countInSlot(form.delivery_date, form.period, editingId) >= MAX_PER_SLOT && (
+            <div className="flex items-end">
+              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-sm px-2 py-2">
+                ⚠️ 這個時段已有 {countInSlot(form.delivery_date, form.period, editingId)} 筆配送
+              </p>
+            </div>
+          )}
         </div>
         <div>
           <label className="block text-xs text-gray-500 mb-1">地點</label>
