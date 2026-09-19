@@ -107,7 +107,7 @@ export default function App() {
         {/* 分店電子佈告欄：隱藏頁面，不放進 Navbar 導覽列，需登入（獨立登入頁） */}
         <Route path="/board/login" element={<BoardLogin />} />
         <Route path="/board" element={
-          <ProtectedRoute allow={['store', 'super_admin']} loginPath="/board/login">
+          <ProtectedRoute allow={['store', 'driver', 'super_admin']} loginPath="/board/login">
             <Board />
           </ProtectedRoute>
         } />
