@@ -469,7 +469,6 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
       if (!form.transfer_from) return toast.error('請選擇調撥起點')
       if (!form.transfer_to) return toast.error('請選擇調撥終點')
       if (form.transfer_from === form.transfer_to) return toast.error('調撥起點與終點不能相同')
-      if (!form.transfer_item.trim()) return toast.error('請填寫調撥貨物')
     } else if (!form.location) {
       return toast.error('配送地點為必填')
     }
@@ -728,7 +727,7 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">調撥貨物</label>
-              <input value={form.transfer_item} placeholder="例如：SIKA彈性防水膠 20桶"
+              <input value={form.transfer_item} placeholder="富有倉儲提貨請註明，其他調撥省略"
                 onChange={e => setForm(f => ({ ...f, transfer_item: e.target.value }))}
                 className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
             </div>

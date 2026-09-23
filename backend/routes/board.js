@@ -127,7 +127,8 @@ function transferTargetNames() {
   return [...storeNames, ...TRANSFER_WAREHOUSES];
 }
 
-// 配送單分兩種：'客人配送'（要填地點/客戶資訊）跟 '分店調撥'（起點A→終點B + 調撥貨物內容，其他欄位不必填）
+// 配送單分兩種：'客人配送'（要填地點/客戶資訊）跟 '分店調撥'（起點A→終點B，其他欄位不必填；
+// 調撥貨物內容非必填——只有從富友倉這類倉庫提貨才需要註明，分店互調可以省略）
 function validateDeliveryPayload(body) {
   const delivery_type = body.delivery_type === '分店調撥' ? '分店調撥' : '客人配送';
   if (!body.delivery_time) return { error: '配送時間為必填' };
@@ -137,7 +138,6 @@ function validateDeliveryPayload(body) {
     if (!transferTargetNames().includes(body.transfer_from)) return { error: '調撥起點不存在' };
     if (!transferTargetNames().includes(body.transfer_to)) return { error: '調撥終點不存在' };
     if (body.transfer_from === body.transfer_to) return { error: '調撥起點與終點不能相同' };
-    if (!body.transfer_item || !body.transfer_item.trim()) return { error: '請填寫調撥貨物' };
   } else {
     if (!body.location) return { error: '配送地點為必填' };
   }
@@ -149,7 +149,7 @@ function validateDeliveryPayload(body) {
     customer_contact: delivery_type === '分店調撥' ? '' : (body.customer_contact || ''),
     transfer_from: delivery_type === '分店調撥' ? body.transfer_from : '',
     transfer_to: delivery_type === '分店調撥' ? body.transfer_to : '',
-    transfer_item: delivery_type === '分店調撥' ? body.transfer_item.trim() : ''
+    transfer_item: delivery_type === '分店調撥' ? (body.transfer_item || '').trim() : ''
   };
 }
 
