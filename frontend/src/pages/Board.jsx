@@ -373,7 +373,10 @@ function TodayOverviewTab({ stores, storeId, canChangeStatus }) {
                       <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${badgeClass(item.status)}`}>{item.status}</span>
                     </div>
                     {item.delivery_type === '分店調撥' ? (
-                      <p className="text-sm text-dark mt-1">🔄 調撥至 {transferTargetLabel(item, stores)}</p>
+                      <>
+                        <p className="text-sm text-dark mt-1">🔄 {transferTargetLabel(item, stores)}</p>
+                        {item.transfer_item && <p className="text-xs text-gray-500 mt-0.5">📦 {item.transfer_item}</p>}
+                      </>
                     ) : (
                       <>
                         <p className="text-sm text-dark mt-1">📍 {item.location}</p>
@@ -399,14 +402,17 @@ function TodayOverviewTab({ stores, storeId, canChangeStatus }) {
 
 // ================= 配送單（行事曆檢視） =================
 const DELIVERY_TYPES = ['客人配送', '分店調撥']
-const EMPTY_DELIVERY_FORM = { delivery_date: '', period: 'morning', delivery_type: '客人配送', location: '', content: '', status: '待配送', customer_name: '', customer_contact: '', transfer_to: '' }
+const EMPTY_DELIVERY_FORM = { delivery_date: '', period: 'morning', delivery_type: '客人配送', location: '', content: '', status: '待配送', customer_name: '', customer_contact: '', transfer_from: '', transfer_to: '', transfer_item: '' }
 function storeName(stores, id) {
   return stores.find(s => String(s.id) === String(id))?.name || ''
 }
-// 調撥目標：新資料直接存目標名稱文字（transfer_to），可以是分店或泰山倉/富友倉這類非分店倉庫；
-// 舊資料（改版前建立的）沒有 transfer_to，退回用 transfer_to_store_id 查分店名稱顯示
+// 調撥起點/終點：新資料直接存文字（transfer_from / transfer_to），可以是分店或泰山倉/富友倉這類非分店倉庫；
+// 舊資料（改版前建立的）沒有 transfer_from，退回用建立這筆資料的分店（store_name）當作起點；
+// 更早以前的資料連 transfer_to 都沒有，退回用 transfer_to_store_id 查分店名稱顯示
 function transferTargetLabel(item, stores) {
-  return item.transfer_to || storeName(stores, item.transfer_to_store_id) || '（未指定）'
+  const from = item.transfer_from || item.store_name || ''
+  const to = item.transfer_to || storeName(stores, item.transfer_to_store_id) || '（未指定）'
+  return from ? `${from} → ${to}` : to
 }
 
 function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
@@ -460,7 +466,10 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
     e.preventDefault()
     if (!form.delivery_date) return toast.error('配送日期為必填')
     if (form.delivery_type === '分店調撥') {
-      if (!form.transfer_to) return toast.error('請選擇調撥目標')
+      if (!form.transfer_from) return toast.error('請選擇調撥起點')
+      if (!form.transfer_to) return toast.error('請選擇調撥終點')
+      if (form.transfer_from === form.transfer_to) return toast.error('調撥起點與終點不能相同')
+      if (!form.transfer_item.trim()) return toast.error('請填寫調撥貨物')
     } else if (!form.location) {
       return toast.error('配送地點為必填')
     }
@@ -480,7 +489,9 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
             delivery_time: `${form.delivery_date}T${periodInfo(form.period).time}`,
             status: form.status,
             delivery_type: '分店調撥',
-            transfer_to: form.transfer_to
+            transfer_from: form.transfer_from,
+            transfer_to: form.transfer_to,
+            transfer_item: form.transfer_item.trim()
           }
         : {
             delivery_time: `${form.delivery_date}T${periodInfo(form.period).time}`,
@@ -516,7 +527,9 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
       status: item.status,
       customer_name: item.customer_name || '',
       customer_contact: item.customer_contact || '',
-      transfer_to: item.transfer_to || storeName(stores, item.transfer_to_store_id) || ''
+      transfer_from: item.transfer_from || '',
+      transfer_to: item.transfer_to || storeName(stores, item.transfer_to_store_id) || '',
+      transfer_item: item.transfer_item || ''
     })
     // 表單在頁面下方，點編輯後如果沒捲過去，使用者會以為按了沒反應
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0)
@@ -627,7 +640,10 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
             </div>
             <span className={`inline-block mt-1.5 text-xs px-2.5 py-0.5 rounded-full font-medium ${badgeClass(item.status)}`}>{item.status}</span>
             {item.delivery_type === '分店調撥' ? (
-              <p className="text-sm text-dark mt-2">🔄 調撥至 {transferTargetLabel(item, stores)}</p>
+              <>
+                <p className="text-sm text-dark mt-2">🔄 {transferTargetLabel(item, stores)}</p>
+                {item.transfer_item && <p className="text-xs text-gray-500 mt-1">📦 {item.transfer_item}</p>}
+              </>
             ) : (
               <>
                 <p className="text-sm text-dark mt-2 whitespace-pre-wrap">📍 {item.location}{item.content ? `\n${item.content}` : ''}</p>
@@ -660,7 +676,12 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
           <label className="block text-xs text-gray-500 mb-1">類型</label>
           <div className="flex gap-2">
             {DELIVERY_TYPES.map(t => (
-              <button key={t} type="button" onClick={() => setForm(f => ({ ...f, delivery_type: t }))}
+              <button key={t} type="button" onClick={() => setForm(f => ({
+                  ...f,
+                  delivery_type: t,
+                  // 切到分店調撥時，起點預設填自己目前的分店（可以再改），方便手動輸入
+                  transfer_from: (t === '分店調撥' && !f.transfer_from) ? (storeName(stores, storeId) || '') : f.transfer_from
+                }))}
                 className={`flex-1 text-sm px-3 py-2 rounded-sm border transition-colors ${
                   form.delivery_type === t ? 'border-primary text-primary bg-primary/5 font-medium' : 'border-gray-200 text-gray-500'
                 }`}>
@@ -686,14 +707,32 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
         </div>
 
         {form.delivery_type === '分店調撥' ? (
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">調撥目標</label>
-            <select value={form.transfer_to} onChange={e => setForm(f => ({ ...f, transfer_to: e.target.value }))}
-              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary">
-              <option value="">請選擇調撥目標</option>
-              {transferTargets.filter(name => name !== storeName(stores, storeId)).map(name => <option key={name} value={name}>{name}</option>)}
-            </select>
-          </div>
+          <>
+            <div className="grid md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">調撥起點 A</label>
+                <select value={form.transfer_from} onChange={e => setForm(f => ({ ...f, transfer_from: e.target.value }))}
+                  className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary">
+                  <option value="">請選擇起點</option>
+                  {transferTargets.filter(name => name !== form.transfer_to).map(name => <option key={name} value={name}>{name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">調撥終點 B</label>
+                <select value={form.transfer_to} onChange={e => setForm(f => ({ ...f, transfer_to: e.target.value }))}
+                  className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary">
+                  <option value="">請選擇終點</option>
+                  {transferTargets.filter(name => name !== form.transfer_from).map(name => <option key={name} value={name}>{name}</option>)}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">調撥貨物</label>
+              <input value={form.transfer_item} placeholder="例如：SIKA彈性防水膠 20桶"
+                onChange={e => setForm(f => ({ ...f, transfer_item: e.target.value }))}
+                className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+            </div>
+          </>
         ) : null}
 
         <div className="grid md:grid-cols-2 gap-3">
@@ -984,7 +1023,7 @@ function HistoryTab({ stores }) {
       const rows = [
         ...(deliveries.data || []).map(i => ({ type: i.delivery_type === '分店調撥' ? '分店調撥' : '配送單', color: i.delivery_type === '分店調撥' ? 'bg-cyan-600' : 'bg-blue-500', time: i.delivery_time, store: withUploader(i.store_name, i.created_by),
           text: i.delivery_type === '分店調撥'
-            ? `🔄 調撥至 ${transferTargetLabel(i, stores)} — ${i.status}`
+            ? `🔄 ${transferTargetLabel(i, stores)} — ${i.status}${i.transfer_item ? `\n📦 ${i.transfer_item}` : ''}`
             : `📍 ${i.location} — ${i.status}${(i.customer_name || i.customer_contact) ? `\n👤 ${i.customer_name}${i.customer_contact ? '｜' + i.customer_contact : ''}` : ''}${i.content ? '\n' + i.content : ''}` })),
         ...(stock.data || []).map(i => ({ type: '缺訂貨', color: 'bg-amber-500', time: i.updated_at, store: withUploader(i.store_name, i.created_by),
           text: `🧾 ${i.item_name} — ${i.status}${i.note ? '\n備註：' + i.note : ''}` })),

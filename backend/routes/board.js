@@ -127,13 +127,17 @@ function transferTargetNames() {
   return [...storeNames, ...TRANSFER_WAREHOUSES];
 }
 
-// 配送單分兩種：'客人配送'（要填地點/客戶資訊）跟 '分店調撥'（只需要調撥目標跟時間，其他欄位不必填）
+// 配送單分兩種：'客人配送'（要填地點/客戶資訊）跟 '分店調撥'（起點A→終點B + 調撥貨物內容，其他欄位不必填）
 function validateDeliveryPayload(body) {
   const delivery_type = body.delivery_type === '分店調撥' ? '分店調撥' : '客人配送';
   if (!body.delivery_time) return { error: '配送時間為必填' };
   if (delivery_type === '分店調撥') {
-    if (!body.transfer_to) return { error: '請選擇調撥目標' };
-    if (!transferTargetNames().includes(body.transfer_to)) return { error: '調撥目標不存在' };
+    if (!body.transfer_from) return { error: '請選擇調撥起點' };
+    if (!body.transfer_to) return { error: '請選擇調撥終點' };
+    if (!transferTargetNames().includes(body.transfer_from)) return { error: '調撥起點不存在' };
+    if (!transferTargetNames().includes(body.transfer_to)) return { error: '調撥終點不存在' };
+    if (body.transfer_from === body.transfer_to) return { error: '調撥起點與終點不能相同' };
+    if (!body.transfer_item || !body.transfer_item.trim()) return { error: '請填寫調撥貨物' };
   } else {
     if (!body.location) return { error: '配送地點為必填' };
   }
@@ -143,7 +147,9 @@ function validateDeliveryPayload(body) {
     content: delivery_type === '分店調撥' ? '' : (body.content || ''),
     customer_name: delivery_type === '分店調撥' ? '' : (body.customer_name || ''),
     customer_contact: delivery_type === '分店調撥' ? '' : (body.customer_contact || ''),
-    transfer_to: delivery_type === '分店調撥' ? body.transfer_to : ''
+    transfer_from: delivery_type === '分店調撥' ? body.transfer_from : '',
+    transfer_to: delivery_type === '分店調撥' ? body.transfer_to : '',
+    transfer_item: delivery_type === '分店調撥' ? body.transfer_item.trim() : ''
   };
 }
 
@@ -157,9 +163,9 @@ router.post('/deliveries', requireStore, (req, res) => {
   if (v.error) return res.status(400).json({ success: false, message: v.error });
   const info = db.prepare(`
     INSERT INTO board_deliveries
-      (store_id, delivery_time, location, content, status, customer_name, customer_contact, created_by, delivery_type, transfer_to)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(req.storeId, delivery_time, v.location, v.content, status || '待配送', v.customer_name, v.customer_contact, req.user.username, v.delivery_type, v.transfer_to);
+      (store_id, delivery_time, location, content, status, customer_name, customer_contact, created_by, delivery_type, transfer_from, transfer_to, transfer_item)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(req.storeId, delivery_time, v.location, v.content, status || '待配送', v.customer_name, v.customer_contact, req.user.username, v.delivery_type, v.transfer_from, v.transfer_to, v.transfer_item);
   res.status(201).json({ success: true, id: info.lastInsertRowid });
 });
 
@@ -203,7 +209,8 @@ router.put('/deliveries/:id', attachStoreId, (req, res) => {
     // 不是自己分店的資料，只是有狀態控制權：只准變更狀態，內容欄位必須跟原本一致，避免誤改到別店的資料
     const contentUnchanged = delivery_time === row.delivery_time && v.location === row.location &&
       v.content === row.content && v.customer_name === row.customer_name && v.customer_contact === row.customer_contact &&
-      v.delivery_type === row.delivery_type && v.transfer_to === (row.transfer_to || '');
+      v.delivery_type === row.delivery_type && v.transfer_from === (row.transfer_from || '') &&
+      v.transfer_to === (row.transfer_to || '') && v.transfer_item === (row.transfer_item || '');
     if (!contentUnchanged) {
       return res.status(403).json({ success: false, message: '只能變更這筆非本店配送單的狀態，其他內容不可修改' });
     }
@@ -211,9 +218,9 @@ router.put('/deliveries/:id', attachStoreId, (req, res) => {
 
   db.prepare(`
     UPDATE board_deliveries SET delivery_time = ?, location = ?, content = ?, status = ?,
-      customer_name = ?, customer_contact = ?, delivery_type = ?, transfer_to = ?, updated_at = datetime('now')
+      customer_name = ?, customer_contact = ?, delivery_type = ?, transfer_from = ?, transfer_to = ?, transfer_item = ?, updated_at = datetime('now')
     WHERE id = ?
-  `).run(delivery_time, v.location, v.content, newStatus, v.customer_name, v.customer_contact, v.delivery_type, v.transfer_to, req.params.id);
+  `).run(delivery_time, v.location, v.content, newStatus, v.customer_name, v.customer_contact, v.delivery_type, v.transfer_from, v.transfer_to, v.transfer_item, req.params.id);
   logStatusChange(row.store_id, req.user.username, 'delivery', req.params.id, row.status, newStatus);
   res.json({ success: true, message: '已更新' });
 });
