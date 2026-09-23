@@ -727,7 +727,7 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">調撥貨物</label>
-              <input value={form.transfer_item} placeholder="富有倉儲提貨請註明，其他調撥省略"
+              <input value={form.transfer_item} placeholder="富友倉提貨請註明，其他調撥省略"
                 onChange={e => setForm(f => ({ ...f, transfer_item: e.target.value }))}
                 className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
             </div>
