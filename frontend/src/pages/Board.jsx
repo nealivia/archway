@@ -240,13 +240,14 @@ export default function Board() {
 
   if (!isStoreAccount && !isRealDriver && !previewing && !storeId) {
     return (
-      <div className="max-w-sm mx-auto mt-24 px-4">
+      <div className="min-h-screen bg-dark-card flex items-center">
+      <div className="max-w-sm mx-auto px-4 py-16 w-full">
         <h1 className="text-xl font-bold text-dark mb-1">分店電子佈告欄</h1>
         <p className="text-sm text-gray-500 mb-6">總部人員請選擇要代操的分店</p>
         <div className="space-y-2">
           {stores.map(s => (
             <button key={s.id} onClick={() => chooseStore(s.id)}
-              className="w-full text-left border border-gray-200 rounded-sm px-4 py-3 text-sm hover:border-primary hover:text-primary transition-colors">
+              className="w-full text-left bg-white border border-gray-100 rounded-2xl px-4 py-3.5 text-sm shadow-sm hover:shadow-md hover:border-primary hover:text-primary transition-all duration-200">
               {s.name}
             </button>
           ))}
@@ -258,12 +259,12 @@ export default function Board() {
             <div className="flex flex-wrap gap-2">
               {stores.map(s => (
                 <button key={s.id} onClick={() => setPreviewIdentity({ type: 'store', id: s.id })}
-                  className="text-xs border border-gray-200 rounded-full px-3 py-1.5 text-gray-500 hover:border-primary hover:text-primary transition-colors">
+                  className="text-xs bg-white border border-gray-100 shadow-sm rounded-full px-3 py-1.5 text-gray-500 hover:border-primary hover:text-primary hover:shadow-md transition-all duration-200">
                   🔍 {s.name}
                 </button>
               ))}
               <button onClick={() => setPreviewIdentity({ type: 'driver' })}
-                className="text-xs border border-gray-200 rounded-full px-3 py-1.5 text-gray-500 hover:border-primary hover:text-primary transition-colors">
+                className="text-xs bg-white border border-gray-100 shadow-sm rounded-full px-3 py-1.5 text-gray-500 hover:border-primary hover:text-primary hover:shadow-md transition-all duration-200">
                 🔍 🚚 司機
               </button>
             </div>
@@ -271,19 +272,21 @@ export default function Board() {
         )}
         <button onClick={logout} className="text-xs text-gray-400 underline mt-6">登出</button>
       </div>
+      </div>
     )
   }
 
   return (
+    <div className="min-h-screen bg-dark-card">
     <div className="max-w-3xl mx-auto px-4 py-6">
       {previewing && (
-        <div className="bg-amber-50 border border-amber-300 text-amber-800 text-xs rounded-sm px-4 py-2.5 mb-4 flex items-center justify-between flex-wrap gap-2">
+        <div className="bg-amber-50 border border-amber-200 shadow-sm text-amber-800 text-xs rounded-2xl px-4 py-2.5 mb-4 flex items-center justify-between flex-wrap gap-2">
           <span>🔍 目前是「身分預覽」模式，畫面會如實模擬 <b>{previewIdentity.type === 'driver' ? '司機' : storeName(stores, previewIdentity.id)}</b> 實際登入看到的內容（不套用超級管理員的萬用權限）。</span>
           <button onClick={() => setPreviewIdentity(null)} className="text-amber-800 underline font-medium shrink-0">結束預覽</button>
         </div>
       )}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h1 className="text-xl font-bold text-dark">📋 分店電子佈告欄</h1>
+        <h1 className="text-2xl font-semibold text-dark tracking-tight">📋 分店電子佈告欄</h1>
         <div className="flex items-center flex-wrap gap-x-1 gap-y-1 text-sm text-gray-500">
           <span>目前身分：<span className="font-semibold text-dark">{currentStoreName}</span></span>
           <button onClick={() => (notifyEnabled ? disableNotifications() : enableNotifications())}
@@ -299,7 +302,7 @@ export default function Board() {
             <span className="relative ml-2">
               <button onClick={() => setPreviewMenuOpen(o => !o)} className="text-primary underline text-xs py-1.5 px-0.5">🔍 身分預覽</button>
               {previewMenuOpen && (
-                <span className="absolute right-0 top-full bg-white border border-gray-200 rounded-sm shadow-lg py-1 z-10 min-w-[160px]">
+                <span className="absolute right-0 top-full bg-white border border-gray-100 rounded-2xl shadow-xl py-1.5 mt-1.5 z-10 min-w-[160px] overflow-hidden">
                   {stores.map(s => (
                     <button key={s.id} onClick={() => { setPreviewIdentity({ type: 'store', id: s.id }); setPreviewMenuOpen(false) }}
                       className="block w-full text-left px-4 py-2 text-xs text-gray-600 hover:bg-gray-50 hover:text-primary whitespace-nowrap">
@@ -321,11 +324,11 @@ export default function Board() {
 
       {showPasswordModal && <ChangePasswordModal onClose={() => setShowPasswordModal(false)} />}
 
-      <div className="flex gap-1 border-b border-gray-200 mb-5 overflow-x-auto">
+      <div className="flex gap-1 bg-dark-card rounded-2xl p-1 mb-5 overflow-x-auto">
         {visibleTabs.map(t => (
           <button key={t.key} onClick={() => setActiveTab(t.key)}
-            className={`px-4 py-3 text-sm whitespace-nowrap border-b-2 -mb-px transition-colors ${
-              activeTab === t.key ? 'border-primary text-primary font-medium' : 'border-transparent text-gray-500 hover:text-dark'
+            className={`px-4 py-2.5 text-sm whitespace-nowrap rounded-xl transition-all duration-200 ${
+              activeTab === t.key ? 'bg-white text-dark font-medium shadow-sm' : 'text-gray-500 hover:text-dark'
             }`}>
             {t.label}
           </button>
@@ -338,6 +341,7 @@ export default function Board() {
       {activeTab === 'comments' && <CommentsTab storeId={storeId} />}
       {activeTab === 'history' && <HistoryTab stores={stores} />}
       {activeTab === 'holidays' && isRealSuperAdmin && !previewing && <HolidaysTab />}
+    </div>
     </div>
   )
 }
@@ -362,27 +366,27 @@ function ChangePasswordModal({ onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4" onClick={onClose}>
-      <div className="bg-white rounded-sm p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-        <h2 className="font-semibold text-dark mb-4">修改密碼</h2>
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 px-4" onClick={onClose}>
+      <div className="bg-white rounded-3xl p-7 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+        <h2 className="font-semibold text-dark mb-4 text-lg">修改密碼</h2>
         <form onSubmit={submit} className="space-y-3">
           <div>
             <label className="block text-xs text-gray-500 mb-1">目前密碼</label>
             <input type="password" value={form.oldPassword} onChange={e => setForm(f => ({ ...f, oldPassword: e.target.value }))}
-              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" autoFocus />
+              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150" autoFocus />
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">新密碼（至少 8 個字元）</label>
             <input type="password" value={form.newPassword} onChange={e => setForm(f => ({ ...f, newPassword: e.target.value }))}
-              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150" />
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">確認新密碼</label>
             <input type="password" value={form.confirmPassword} onChange={e => setForm(f => ({ ...f, confirmPassword: e.target.value }))}
-              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150" />
           </div>
           <div className="flex gap-3 justify-end pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-200 text-sm rounded-sm hover:bg-gray-50">取消</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-200 text-sm rounded-full hover:bg-gray-50 transition-colors duration-200">取消</button>
             <button type="submit" disabled={saving} className="btn-primary text-sm py-2 px-5 disabled:opacity-60">{saving ? '儲存中...' : '確認修改'}</button>
           </div>
         </form>
@@ -464,7 +468,7 @@ function TodayOverviewTab({ stores, storeId, canChangeStatus }) {
         <div className="flex items-center gap-2">
           <button onClick={() => shiftDate(-1)} className="text-gray-400 hover:text-dark text-lg px-2 py-1">‹</button>
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
-            className="border border-gray-200 text-sm px-3 py-2 rounded-sm" />
+            className="border border-gray-200 text-sm px-3 py-2 rounded-xl" />
           <button onClick={() => shiftDate(1)} className="text-gray-400 hover:text-dark text-lg px-2 py-1">›</button>
           {!isToday && (
             <button onClick={() => setDate(dateKey(new Date()))} className="text-xs text-primary underline py-1 px-0.5">回今天</button>
@@ -486,7 +490,7 @@ function TodayOverviewTab({ stores, storeId, canChangeStatus }) {
           ) : (
             <div className="space-y-2">
               {byPeriod[p.key].map((item, idx) => (
-                <div key={item.id} className="border border-gray-200 rounded-sm p-3 flex gap-2"
+                <div key={item.id} className="bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200 p-3 flex gap-2"
                   style={{ borderLeft: `4px solid ${storeColor(item.store_id)}` }}>
                   {byPeriod[p.key].length > 1 && (
                     <div className="flex flex-col justify-center gap-0.5 shrink-0">
@@ -528,7 +532,7 @@ function TodayOverviewTab({ stores, storeId, canChangeStatus }) {
                     {item.status === '已送達' && (
                       item.proof_photo ? (
                         <a href={item.proof_photo} target="_blank" rel="noopener noreferrer" className="inline-block mt-1.5">
-                          <img src={item.proof_photo} alt="送達證明" className="w-14 h-14 object-cover rounded-sm border border-gray-200" />
+                          <img src={item.proof_photo} alt="送達證明" className="w-14 h-14 object-cover rounded-xl border border-gray-200" />
                         </a>
                       ) : canChangeStatus && (
                         <label className="text-xs text-primary underline cursor-pointer mt-1.5 py-1.5 px-0.5 inline-block">
@@ -751,14 +755,14 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
             className="text-gray-400 hover:text-dark text-lg px-2 py-1">›</button>
         </div>
         <select value={filterStore} onChange={e => setFilterStore(e.target.value)}
-          className="border border-gray-200 text-xs px-2 py-2 rounded-sm">
+          className="border border-gray-200 text-xs px-2 py-2 rounded-xl">
           <option value="">全部分店</option>
           {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
       </div>
 
       {/* 月曆格狀檢視（週六日不配送，反灰標示） */}
-      <div className="grid grid-cols-7 gap-px bg-gray-200 border border-gray-200 rounded-sm overflow-hidden text-xs">
+      <div className="grid grid-cols-7 gap-px bg-gray-100 border border-gray-100 rounded-2xl shadow-sm overflow-hidden text-xs">
         {WEEKDAYS.map((w, i) => (
           <div key={w} className={`text-center py-1.5 font-medium ${(i === 0 || i === 6) ? 'bg-gray-200 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>{w}</div>
         ))}
@@ -770,7 +774,7 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
           const isHoliday = !!holidayNote[k]
           return (
             <div key={idx} onClick={() => pickDay(d)} title={isHoliday ? `國定假日：${holidayNote[k] || ''}` : undefined}
-              className={`min-h-[64px] p-1 cursor-pointer ${isHoliday ? 'bg-amber-50 hover:bg-amber-100' : isWeekend ? 'bg-gray-100 hover:bg-gray-200' : 'bg-white hover:bg-gray-50'} ${k === selectedDate ? 'ring-2 ring-inset ring-primary' : ''}`}>
+              className={`min-h-[64px] p-1 cursor-pointer transition-colors duration-150 ${isHoliday ? 'bg-amber-50 hover:bg-amber-100' : isWeekend ? 'bg-gray-100 hover:bg-gray-200' : 'bg-white hover:bg-gray-50'} ${k === selectedDate ? 'ring-2 ring-inset ring-primary' : ''}`}>
               <div className={`text-[11px] mb-1 flex items-center gap-1 ${!inMonth ? 'text-gray-300' : isHoliday ? 'text-amber-600 font-bold' : isWeekend ? 'text-gray-400' : (k === today ? 'text-primary font-bold' : 'text-gray-600')}`}>
                 {d.getDate()}{isHoliday && inMonth && <span>🎌</span>}
               </div>
@@ -779,7 +783,7 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
               )}
               <div className="space-y-0.5">
                 {items.slice(0, 2).map(it => (
-                  <div key={it.id} className="truncate text-white rounded-sm px-1 py-0.5 text-[10px]"
+                  <div key={it.id} className="truncate text-white rounded-md px-1 py-0.5 text-[10px]"
                     style={{ background: storeColor(it.store_id) }}>
                     {periodInfo(periodOfDeliveryTime(it.delivery_time)).short} {it.delivery_type === '分店調撥' ? '🔄' : ''}{it.store_name}
                   </div>
@@ -806,7 +810,7 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
       <div className="space-y-3">
         {dayItems.length === 0 && <div className="text-center text-gray-400 text-sm py-10">這天尚無配送安排</div>}
         {dayItems.map(item => (
-          <div key={item.id} className="border border-gray-200 rounded-sm p-4"
+          <div key={item.id} className="bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200 p-4"
             style={{ borderLeft: `4px solid ${storeColor(item.store_id)}` }}>
             <div className="flex justify-between items-baseline flex-wrap gap-1">
               <span className="text-xs text-gray-400">{item.store_name}{item.created_by && <span>・上傳者 {item.created_by}</span>}</span>
@@ -848,7 +852,7 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
             {item.status === '已送達' && (
               item.proof_photo ? (
                 <a href={item.proof_photo} target="_blank" rel="noopener noreferrer" className="inline-block mt-1.5">
-                  <img src={item.proof_photo} alt="送達證明" className="w-14 h-14 object-cover rounded-sm border border-gray-200" />
+                  <img src={item.proof_photo} alt="送達證明" className="w-14 h-14 object-cover rounded-xl border border-gray-200" />
                 </a>
               ) : canChangeStatus && (
                 <label className="text-xs text-primary underline cursor-pointer mt-1.5 py-1.5 px-0.5 inline-block">
@@ -863,7 +867,7 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
       </div>
 
       {storeId && (
-      <form ref={formRef} onSubmit={submit} className="bg-white border border-gray-200 rounded-sm p-5 mt-6 space-y-3">
+      <form ref={formRef} onSubmit={submit} className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 mt-6 space-y-3">
         <h2 className="font-semibold text-dark text-sm mb-1">{editingId ? '編輯配送單' : '新增配送單'}</h2>
         <div>
           <label className="block text-xs text-gray-500 mb-1">類型</label>
@@ -875,7 +879,7 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
                   // 切到分店調撥時，起點預設填自己目前的分店（可以再改），方便手動輸入
                   transfer_from: (t === '分店調撥' && !f.transfer_from) ? (storeName(stores, storeId) || '') : f.transfer_from
                 }))}
-                className={`flex-1 text-sm px-3 py-2 rounded-sm border transition-colors ${
+                className={`flex-1 text-sm px-3 py-2 rounded-xl border transition-colors ${
                   form.delivery_type === t ? 'border-primary text-primary bg-primary/5 font-medium' : 'border-gray-200 text-gray-500'
                 }`}>
                 {t === '客人配送' ? '🚚 配送貨物給客人' : '🔄 分店調撥'}
@@ -888,12 +892,12 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
             <label className="block text-xs text-gray-500 mb-1">配送日期</label>
             <input type="date" value={form.delivery_date}
               onChange={e => setForm(f => ({ ...f, delivery_date: e.target.value }))}
-              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150" />
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">配送時段</label>
             <select value={form.period} onChange={e => setForm(f => ({ ...f, period: e.target.value }))}
-              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary">
+              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150">
               {DELIVERY_PERIODS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
             </select>
           </div>
@@ -905,7 +909,7 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
               <div>
                 <label className="block text-xs text-gray-500 mb-1">調撥起點 A</label>
                 <select value={form.transfer_from} onChange={e => setForm(f => ({ ...f, transfer_from: e.target.value }))}
-                  className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary">
+                  className="w-full border border-gray-200 px-3 py-2 text-sm rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150">
                   <option value="">請選擇起點</option>
                   {transferTargets.filter(name => name !== form.transfer_to).map(name => <option key={name} value={name}>{name}</option>)}
                 </select>
@@ -913,7 +917,7 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
               <div>
                 <label className="block text-xs text-gray-500 mb-1">調撥終點 B</label>
                 <select value={form.transfer_to} onChange={e => setForm(f => ({ ...f, transfer_to: e.target.value }))}
-                  className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary">
+                  className="w-full border border-gray-200 px-3 py-2 text-sm rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150">
                   <option value="">請選擇終點</option>
                   {transferTargets.filter(name => name !== form.transfer_from).map(name => <option key={name} value={name}>{name}</option>)}
                 </select>
@@ -923,7 +927,7 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
               <label className="block text-xs text-gray-500 mb-1">調撥貨物</label>
               <input value={form.transfer_item} placeholder="富友倉提貨請註明，其他調撥省略"
                 onChange={e => setForm(f => ({ ...f, transfer_item: e.target.value }))}
-                className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+                className="w-full border border-gray-200 px-3 py-2 text-sm rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150" />
             </div>
           </>
         ) : null}
@@ -932,13 +936,13 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
           <div>
             <label className="block text-xs text-gray-500 mb-1">狀態</label>
             <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
-              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary">
+              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150">
               {DELIVERY_STATUSES.map(s => <option key={s}>{s}</option>)}
             </select>
           </div>
           {form.delivery_date && slotCount >= MAX_PER_SLOT && (
             <div className="flex items-end">
-              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-sm px-2 py-2">
+              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-2 py-2">
                 ⚠️ 全公司只有一位司機，這個時段全分店合計已有 {slotCount} 筆配送
               </p>
             </div>
@@ -951,27 +955,27 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
               <label className="block text-xs text-gray-500 mb-1">地點</label>
               <input value={form.location} placeholder="例如：客戶工地 / 中山店 後門收貨區"
                 onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-                className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+                className="w-full border border-gray-200 px-3 py-2 text-sm rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150" />
             </div>
             <div className="grid md:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs text-gray-500 mb-1">客戶名稱</label>
                 <input value={form.customer_name} placeholder="例如：王先生"
                   onChange={e => setForm(f => ({ ...f, customer_name: e.target.value }))}
-                  className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+                  className="w-full border border-gray-200 px-3 py-2 text-sm rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150" />
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">客戶聯絡方式</label>
                 <input value={form.customer_contact} placeholder="例如：0912-345-678"
                   onChange={e => setForm(f => ({ ...f, customer_contact: e.target.value }))}
-                  className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+                  className="w-full border border-gray-200 px-3 py-2 text-sm rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150" />
               </div>
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">貨物內容</label>
               <textarea value={form.content} rows={2} placeholder="例如：防水塗料 5桶、矽利康 2箱"
                 onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
-                className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary resize-none" />
+                className="w-full border border-gray-200 px-3 py-2 text-sm rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150 resize-none" />
             </div>
           </>
         )}
@@ -1056,18 +1060,18 @@ function StockTab({ storeId, stores }) {
 
   return (
     <div>
-      <form onSubmit={submit} className="bg-white border border-gray-200 rounded-sm p-5 mb-6 space-y-3">
+      <form onSubmit={submit} className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 mb-6 space-y-3">
         <h2 className="font-semibold text-dark text-sm mb-1">{editingId ? '編輯缺訂貨狀態' : '標示缺訂貨狀態'}</h2>
         <div>
           <label className="block text-xs text-gray-500 mb-1">品項</label>
           <input value={form.item_name} placeholder="例如：矽利康 白色 300ml"
             onChange={e => setForm(f => ({ ...f, item_name: e.target.value }))}
-            className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+            className="w-full border border-gray-200 px-3 py-2 text-sm rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150" />
         </div>
         <div>
           <label className="block text-xs text-gray-500 mb-1">狀態</label>
           <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
-            className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary">
+            className="w-full border border-gray-200 px-3 py-2 text-sm rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150">
             {STOCK_STATUSES.map(s => <option key={s}>{s}</option>)}
           </select>
         </div>
@@ -1075,7 +1079,7 @@ function StockTab({ storeId, stores }) {
           <label className="block text-xs text-gray-500 mb-1">備註</label>
           <input value={form.note} placeholder="例如：預計明日到貨 / 可向A店借調"
             onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
-            className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+            className="w-full border border-gray-200 px-3 py-2 text-sm rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150" />
         </div>
         <div className="flex gap-3">
           <button disabled={saving} className="btn-primary text-sm py-2 px-6 disabled:opacity-50">
@@ -1090,7 +1094,7 @@ function StockTab({ storeId, stores }) {
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-dark">缺訂貨狀態列表</h2>
         <select value={filterStore} onChange={e => setFilterStore(e.target.value)}
-          className="border border-gray-200 text-xs px-2 py-2 rounded-sm">
+          className="border border-gray-200 text-xs px-2 py-2 rounded-xl">
           <option value="">全部分店</option>
           {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
@@ -1099,7 +1103,7 @@ function StockTab({ storeId, stores }) {
       <div className="space-y-3">
         {list.length === 0 && <div className="text-center text-gray-400 text-sm py-10">尚無缺訂貨資料</div>}
         {list.map(item => (
-          <div key={item.id} className={`border rounded-sm p-4 ${String(item.store_id) === String(storeId) ? 'border-l-4 border-l-green-500 border-gray-200' : 'border-gray-200'}`}>
+          <div key={item.id} className={`bg-white border rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200 p-4 ${String(item.store_id) === String(storeId) ? 'border-l-4 border-l-green-500 border-gray-100' : 'border-gray-100'}`}>
             <div className="flex justify-between items-baseline flex-wrap gap-1">
               <span className="text-xs text-gray-400">{item.store_name}{item.created_by && <span>・上傳者 {item.created_by}</span>}</span>
               <span className="text-xs text-gray-400">更新：{fmtTime(item.updated_at)}</span>
@@ -1155,11 +1159,11 @@ function CommentsTab({ storeId }) {
 
   return (
     <div>
-      <form onSubmit={submit} className="bg-white border border-gray-200 rounded-sm p-5 mb-6 space-y-3">
+      <form onSubmit={submit} className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 mb-6 space-y-3">
         <h2 className="font-semibold text-dark text-sm mb-1">留言 / 備註</h2>
         <textarea value={message} rows={3} placeholder="例如：中山店庫存充足，可協助A店調貨"
           onChange={e => setMessage(e.target.value)}
-          className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary resize-none" />
+          className="w-full border border-gray-200 px-3 py-2 text-sm rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150 resize-none" />
         <button disabled={saving} className="btn-primary text-sm py-2 px-6 disabled:opacity-50">
           {saving ? '送出中...' : '送出留言'}
         </button>
@@ -1169,7 +1173,7 @@ function CommentsTab({ storeId }) {
       <div className="space-y-3">
         {list.length === 0 && <div className="text-center text-gray-400 text-sm py-10">尚無留言</div>}
         {list.map(item => (
-          <div key={item.id} className={`border rounded-sm p-4 ${String(item.store_id) === String(storeId) ? 'border-l-4 border-l-green-500 border-gray-200' : 'border-gray-200'}`}>
+          <div key={item.id} className={`bg-white border rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200 p-4 ${String(item.store_id) === String(storeId) ? 'border-l-4 border-l-green-500 border-gray-100' : 'border-gray-100'}`}>
             <div className="flex justify-between items-baseline flex-wrap gap-1">
               <span className="text-xs text-gray-400">{item.store_name}{item.created_by && <span>・上傳者 {item.created_by}</span>}</span>
               <span className="text-xs text-gray-400">{fmtTime(item.created_at)}</span>
@@ -1242,17 +1246,17 @@ function HolidaysTab() {
       <button onClick={syncNow} disabled={syncing} className="text-xs text-primary underline mb-4 disabled:opacity-60">
         {syncing ? '同步中...' : '立即重新同步台灣國定假日'}
       </button>
-      <form onSubmit={submit} className="flex flex-wrap items-end gap-2 mb-6 bg-white border border-gray-200 rounded-sm p-4">
+      <form onSubmit={submit} className="flex flex-wrap items-end gap-2 mb-6 bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
         <div>
           <label className="block text-xs text-gray-500 mb-1">日期</label>
           <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-            className="border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+            className="border border-gray-200 px-3 py-2 text-sm rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150" />
         </div>
         <div className="flex-1 min-w-[140px]">
           <label className="block text-xs text-gray-500 mb-1">備註（選填）</label>
           <input value={form.note} placeholder="例如：中秋節"
             onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
-            className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+            className="w-full border border-gray-200 px-3 py-2 text-sm rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150" />
         </div>
         <button disabled={saving} className="btn-primary text-sm py-2 px-5 disabled:opacity-60">新增</button>
       </form>
@@ -1264,7 +1268,7 @@ function HolidaysTab() {
       ) : (
         <div className="space-y-2">
           {list.map(h => (
-            <div key={h.date} className="flex items-center justify-between border border-gray-200 rounded-sm px-4 py-2.5 bg-white">
+            <div key={h.date} className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200 px-4 py-2.5">
               <span className="text-sm text-dark">
                 {h.date}{h.note && <span className="text-gray-400">・{h.note}</span>}
                 <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${h.source === 'manual' ? 'bg-blue-50 text-blue-500' : 'bg-amber-50 text-amber-600'}`}>
@@ -1351,13 +1355,13 @@ function HistoryTab({ stores }) {
 
   return (
     <div>
-      <div className="bg-white border border-gray-200 rounded-sm p-5 mb-6 space-y-3">
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 mb-6 space-y-3">
         <h2 className="font-semibold text-dark text-sm mb-1">查詢條件</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
             <label className="block text-xs text-gray-500 mb-1">分店</label>
             <select value={store} onChange={e => setStore(e.target.value)}
-              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm">
+              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-xl">
               <option value="">全部分店</option>
               {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
@@ -1365,18 +1369,18 @@ function HistoryTab({ stores }) {
           <div>
             <label className="block text-xs text-gray-500 mb-1">起始日期</label>
             <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm" />
+              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-xl" />
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">結束日期</label>
             <input type="date" value={to} onChange={e => setTo(e.target.value)}
-              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm" />
+              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-xl" />
           </div>
         </div>
         <div className="flex gap-2">
           <button onClick={search} className="btn-primary text-sm py-2 px-6">查詢</button>
           <button onClick={exportCsv} disabled={exporting}
-            className="text-sm py-2 px-6 border border-gray-200 rounded-sm text-gray-600 hover:border-primary hover:text-primary disabled:opacity-60">
+            className="text-sm py-2 px-6 border border-gray-200 rounded-xl text-gray-600 hover:border-primary hover:text-primary disabled:opacity-60">
             {exporting ? '匯出中...' : '📥 匯出 CSV（可用 Excel 開啟）'}
           </button>
         </div>
@@ -1386,7 +1390,7 @@ function HistoryTab({ stores }) {
         {merged === null && <div className="text-center text-gray-400 text-sm py-10">請設定條件後查詢</div>}
         {merged && merged.length === 0 && <div className="text-center text-gray-400 text-sm py-10">查無符合條件的紀錄</div>}
         {merged && merged.slice(0, visibleCount).map((item, idx) => (
-          <div key={idx} className="border border-gray-200 rounded-sm p-4">
+          <div key={idx} className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
             <div className="flex justify-between items-baseline flex-wrap gap-1">
               <span>
                 <span className={`text-white text-[11px] px-2 py-0.5 rounded mr-2 ${item.color}`}>{item.type}</span>
@@ -1399,7 +1403,7 @@ function HistoryTab({ stores }) {
         ))}
         {merged && merged.length > visibleCount && (
           <button onClick={() => setVisibleCount(v => v + HISTORY_PAGE_SIZE)}
-            className="w-full text-sm text-primary border border-gray-200 rounded-sm py-2.5 hover:border-primary transition-colors">
+            className="w-full text-sm text-primary border border-gray-200 rounded-xl py-2.5 hover:border-primary transition-colors">
             載入更多（還有 {merged.length - visibleCount} 筆）
           </button>
         )}
