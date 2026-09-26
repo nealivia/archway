@@ -204,6 +204,7 @@ function initDatabase() {
       transfer_to TEXT NOT NULL DEFAULT '',
       transfer_from TEXT NOT NULL DEFAULT '',
       transfer_item TEXT NOT NULL DEFAULT '',
+      proof_photo TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -271,6 +272,8 @@ function initDatabase() {
   // 分店調撥要能自選「起點 A → 終點 B」（不一定是建立資料的那家店），以及調撥的貨物內容
   try { db.exec("ALTER TABLE board_deliveries ADD COLUMN transfer_from TEXT NOT NULL DEFAULT ''"); } catch (e) { /* 已存在 */ }
   try { db.exec("ALTER TABLE board_deliveries ADD COLUMN transfer_item TEXT NOT NULL DEFAULT ''"); } catch (e) { /* 已存在 */ }
+  // 送達證明照片路徑（切換成「已送達」時可以順手拍照上傳，之後有糾紛可以回頭查）
+  try { db.exec("ALTER TABLE board_deliveries ADD COLUMN proof_photo TEXT NOT NULL DEFAULT ''"); } catch (e) { /* 已存在 */ }
 
   // 初始化分店登入帳號（僅在該分店尚無帳號時建立，密碼隨機產生，只顯示一次）
   const boardUsernameMap = { '和平店': 'heping', '板橋店': 'banqiao', '樹林 Sika 展示店': 'shulin' };

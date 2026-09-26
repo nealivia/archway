@@ -361,6 +361,17 @@ function TodayOverviewTab({ stores, storeId, canChangeStatus }) {
     } catch (err) { toast.error(err.message || '更新失敗') }
   }
 
+  // 送達證明照片：交給司機/控店在切成「已送達」後順手拍照上傳，之後有糾紛可以回頭查
+  const uploadProof = async (item, file) => {
+    const formData = new FormData()
+    formData.append('photo', file)
+    try {
+      await api.post(`/board/deliveries/${item.id}/proof`, formData, withStore(storeId))
+      toast.success('已上傳送達證明')
+      load()
+    } catch (err) { toast.error(err.message || '照片上傳失敗') }
+  }
+
   // 預設依「排序值→建立順序」排；排序值都還沒調整過時剛好等同建立順序，使用者可以再用上下箭頭手動調整司機路線
   const sorted = [...list].sort((a, b) => (a.sort_order - b.sort_order) || (a.id - b.id))
   const byPeriod = DELIVERY_PERIODS.reduce((acc, p) => {
@@ -460,6 +471,19 @@ function TodayOverviewTab({ stores, storeId, canChangeStatus }) {
                     )}
                     {canChangeStatus && (
                       <button onClick={() => cycleStatus(item)} className="text-xs text-gray-500 underline mt-1.5 py-1.5 px-0.5">切換狀態</button>
+                    )}
+                    {item.status === '已送達' && (
+                      item.proof_photo ? (
+                        <a href={item.proof_photo} target="_blank" rel="noopener noreferrer" className="inline-block mt-1.5">
+                          <img src={item.proof_photo} alt="送達證明" className="w-14 h-14 object-cover rounded-sm border border-gray-200" />
+                        </a>
+                      ) : canChangeStatus && (
+                        <label className="text-xs text-primary underline cursor-pointer mt-1.5 py-1.5 px-0.5 inline-block">
+                          📷 上傳送達照片
+                          <input type="file" accept="image/*" capture="environment" className="hidden"
+                            onChange={e => { const f = e.target.files?.[0]; if (f) uploadProof(item, f); e.target.value = '' }} />
+                        </label>
+                      )
                     )}
                   </div>
                 </div>
@@ -626,6 +650,16 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
     } catch (err) { toast.error(err.message || '更新失敗') }
   }
 
+  const uploadProof = async (item, file) => {
+    const formData = new FormData()
+    formData.append('photo', file)
+    try {
+      await api.post(`/board/deliveries/${item.id}/proof`, formData, withStore(storeId))
+      toast.success('已上傳送達證明')
+      load()
+    } catch (err) { toast.error(err.message || '照片上傳失敗') }
+  }
+
   const remove = async (item) => {
     if (!confirm('確定刪除這筆配送單？')) return
     try {
@@ -747,6 +781,19 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
                   </>
                 )}
               </div>
+            )}
+            {item.status === '已送達' && (
+              item.proof_photo ? (
+                <a href={item.proof_photo} target="_blank" rel="noopener noreferrer" className="inline-block mt-1.5">
+                  <img src={item.proof_photo} alt="送達證明" className="w-14 h-14 object-cover rounded-sm border border-gray-200" />
+                </a>
+              ) : canChangeStatus && (
+                <label className="text-xs text-primary underline cursor-pointer mt-1.5 py-1.5 px-0.5 inline-block">
+                  📷 上傳送達照片
+                  <input type="file" accept="image/*" capture="environment" className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) uploadProof(item, f); e.target.value = '' }} />
+                </label>
+              )
             )}
           </div>
         ))}

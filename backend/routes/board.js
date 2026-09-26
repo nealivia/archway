@@ -1,7 +1,25 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const sharp = require('sharp');
+const path = require('path');
+const fs = require('fs');
+const { v4: uuidv4 } = require('uuid');
 const { db } = require('../database');
 const { authenticateToken } = require('../middleware/auth');
+
+// 送達證明照片：跟 routes/upload.js 共用同一個 Volume 目錄與 /uploads 靜態路徑，
+// 上傳後一律壓縮成 WebP（跟產品圖片同一套壓縮邏輯），避免手機拍的原始照片太大占空間。
+const PROOF_UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(__dirname, '../uploads');
+if (!fs.existsSync(PROOF_UPLOADS_DIR)) fs.mkdirSync(PROOF_UPLOADS_DIR, { recursive: true });
+const proofUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (/\.(jpg|jpeg|png|webp|gif)$/i.test(file.originalname)) cb(null, true);
+    else cb(new Error('只允許上傳圖片（JPG/PNG/WebP/GIF）'));
+  }
+});
 
 // ── 佈告欄需要登入 ──────────────────────────────────────────────────
 // store（各分店）、driver（司機，只能切換配送狀態）、super_admin（超級管理員）能存取，一般管理員（admin）不可進入。
@@ -231,6 +249,30 @@ router.delete('/deliveries/:id', requireStore,
     db.prepare('DELETE FROM board_deliveries WHERE id = ?').run(req.params.id);
     res.json({ success: true, message: '已刪除' });
   });
+
+// 送達證明照片：跟切換配送狀態同一組人能上傳（司機/和平店/超級管理員），不分是不是自己分店建立的配送單，
+// 因為全公司只有一位司機，實際跑單、拍照存證的人本來就不是配送單建立者那家分店。
+router.post('/deliveries/:id/proof', attachStoreId, proofUpload.single('photo'), async (req, res) => {
+  const row = db.prepare('SELECT * FROM board_deliveries WHERE id = ?').get(req.params.id);
+  if (!row) return res.status(404).json({ success: false, message: '找不到資料' });
+  if (!canChangeDeliveryStatus(req)) {
+    return res.status(403).json({ success: false, message: '沒有權限上傳送達證明' });
+  }
+  if (!req.file) return res.status(400).json({ success: false, message: '未上傳照片' });
+  try {
+    const filename = `${uuidv4()}.webp`;
+    await sharp(req.file.buffer)
+      .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toFile(path.join(PROOF_UPLOADS_DIR, filename));
+    const url = `/uploads/${filename}`;
+    db.prepare("UPDATE board_deliveries SET proof_photo = ?, updated_at = datetime('now') WHERE id = ?").run(url, req.params.id);
+    res.json({ success: true, url });
+  } catch (e) {
+    console.error('❌ 送達證明照片處理失敗:', e.message);
+    res.status(500).json({ success: false, message: '照片處理失敗' });
+  }
+});
 
 // ================= 缺訂貨狀態 =================
 router.get('/stock', (req, res) => {
