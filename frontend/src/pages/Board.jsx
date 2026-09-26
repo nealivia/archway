@@ -1310,8 +1310,10 @@ function HistoryTab({ stores }) {
           text: `🧾 ${i.item_name} — ${i.status}${i.note ? '\n備註：' + i.note : ''}` })),
         ...(comments.data || []).map(i => ({ type: '留言', color: 'bg-green-500', time: i.created_at, store: withUploader(i.store_name, i.created_by),
           text: i.message })),
-        ...(statusLog.data || []).map(i => ({ type: '狀態變更', color: 'bg-purple-500', time: i.created_at, store: i.store_name,
-          text: `${typeLabel[i.resource_type] || i.resource_type}狀態：${i.from_status || '（新建立）'} → ${i.to_status}（操作人：${i.changed_by}）` }))
+        ...(statusLog.data || []).filter(i => i.resource_type !== 'delivery_edit').map(i => ({ type: '狀態變更', color: 'bg-purple-500', time: i.created_at, store: i.store_name,
+          text: `${typeLabel[i.resource_type] || i.resource_type}狀態：${i.from_status || '（新建立）'} → ${i.to_status}（操作人：${i.changed_by}）` })),
+        ...(statusLog.data || []).filter(i => i.resource_type === 'delivery_edit').map(i => ({ type: '內容修改', color: 'bg-orange-500', time: i.created_at, store: i.store_name,
+          text: `✏️ ${i.to_status}（操作人：${i.changed_by}）` }))
       ].sort((a, b) => new Date(b.time.replace(' ', 'T')) - new Date(a.time.replace(' ', 'T')))
       setMerged(rows)
       setVisibleCount(HISTORY_PAGE_SIZE)

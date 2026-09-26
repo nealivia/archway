@@ -86,6 +86,28 @@ function logStatusChange(storeId, changedBy, type, resourceId, fromStatus, toSta
   `).run(type, resourceId, storeId, fromStatus, toStatus, changedBy);
 }
 
+// 配送單「內容」被誰改過什麼：跟狀態變更紀錄共用同一張表(board_status_log)，
+// resource_type 存 'delivery_edit' 跟一般狀態變更('delivery')區分開來，方便之後萬一資料被改錯能回頭查。
+// 只記錄「真的有變」的欄位，不會每次編輯都留一堆沒意義的紀錄。
+const DELIVERY_EDIT_FIELDS = [
+  ['delivery_time', '配送時間'], ['location', '地點'], ['content', '內容'],
+  ['customer_name', '客戶名稱'], ['customer_contact', '客戶聯絡方式'],
+  ['transfer_from', '調撥起點'], ['transfer_to', '調撥終點'], ['transfer_item', '調撥貨物']
+];
+function logDeliveryContentEdit(row, newValues, changedBy) {
+  const diffs = [];
+  for (const [key, label] of DELIVERY_EDIT_FIELDS) {
+    const oldVal = row[key] || '';
+    const newVal = newValues[key] || '';
+    if (oldVal !== newVal) diffs.push(`${label}：${oldVal || '（空白）'} → ${newVal || '（空白）'}`);
+  }
+  if (diffs.length === 0) return;
+  db.prepare(`
+    INSERT INTO board_status_log (resource_type, resource_id, store_id, from_status, to_status, changed_by)
+    VALUES ('delivery_edit', ?, ?, NULL, ?, ?)
+  `).run(row.id, row.store_id, diffs.join('；'), changedBy);
+}
+
 // 配送單「更改狀態」的控制權：所有配送都由和平店（總店）統一控制司機排程，所以只有和平店帳號、
 // 司機帳號（driver）、或超級管理員可以切換配送狀態（待配送/配送中/已送達）；
 // 其他分店仍可以編輯或刪除自己送出的配送單內容，但一樣不能切換狀態。
@@ -240,6 +262,7 @@ router.put('/deliveries/:id', attachStoreId, (req, res) => {
     WHERE id = ?
   `).run(delivery_time, v.location, v.content, newStatus, v.customer_name, v.customer_contact, v.delivery_type, v.transfer_from, v.transfer_to, v.transfer_item, req.params.id);
   logStatusChange(row.store_id, req.user.username, 'delivery', req.params.id, row.status, newStatus);
+  logDeliveryContentEdit(row, { delivery_time, ...v }, req.user.username);
   res.json({ success: true, message: '已更新' });
 });
 
