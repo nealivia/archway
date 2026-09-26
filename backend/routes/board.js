@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const { db } = require('../database');
 const { authenticateToken } = require('../middleware/auth');
-const { sendLineMessage } = require('../utils/line');
 
 // ── 佈告欄需要登入 ──────────────────────────────────────────────────
 // store（各分店）、driver（司機，只能切換配送狀態）、super_admin（超級管理員）能存取，一般管理員（admin）不可進入。
@@ -158,14 +157,6 @@ router.get('/transfer-targets', (req, res) => {
   res.json({ success: true, data: transferTargetNames() });
 });
 
-// 配送時間存的是 '2026-09-28T13:30' 這種格式，轉成比較好讀的「09/28 13:30」給 LINE 通知用
-function fmtDeliveryTime(dt) {
-  if (!dt) return '';
-  const [date, time] = dt.split('T');
-  const [, m, d] = (date || '').split('-');
-  return m && d ? `${m}/${d} ${time || ''}`.trim() : dt;
-}
-
 router.post('/deliveries', requireStore, (req, res) => {
   const { delivery_time, status } = req.body;
   const v = validateDeliveryPayload(req.body);
@@ -176,13 +167,6 @@ router.post('/deliveries', requireStore, (req, res) => {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(req.storeId, delivery_time, v.location, v.content, status || '待配送', v.customer_name, v.customer_contact, req.user.username, v.delivery_type, v.transfer_from, v.transfer_to, v.transfer_item);
   res.status(201).json({ success: true, id: info.lastInsertRowid });
-
-  // 新增配送單通知 LINE 群組（背景執行，失敗也不影響配送單已經新增成功）
-  const storeRow = db.prepare('SELECT name FROM stores WHERE id = ?').get(req.storeId);
-  const lines = v.delivery_type === '分店調撥'
-    ? [`🔄 新增分店調撥（${storeRow?.name || ''}上傳）`, `${v.transfer_from} → ${v.transfer_to}`, `時間：${fmtDeliveryTime(delivery_time)}`, v.transfer_item ? `貨物：${v.transfer_item}` : null]
-    : [`🚚 新增配送單（${storeRow?.name || ''}）`, `時間：${fmtDeliveryTime(delivery_time)}`, `地點：${v.location}`, v.customer_name ? `客戶：${v.customer_name}` : null];
-  sendLineMessage(lines.filter(Boolean).join('\n'));
 });
 
 // 今日配送總覽的司機路線手動排序：全公司只有一位司機，順序是跨分店共用的排程，
@@ -239,8 +223,6 @@ router.put('/deliveries/:id', attachStoreId, (req, res) => {
   `).run(delivery_time, v.location, v.content, newStatus, v.customer_name, v.customer_contact, v.delivery_type, v.transfer_from, v.transfer_to, v.transfer_item, req.params.id);
   logStatusChange(row.store_id, req.user.username, 'delivery', req.params.id, row.status, newStatus);
   res.json({ success: true, message: '已更新' });
-  // 註：狀態變更不發 LINE 通知——LINE 推播到群組是「群組人數 x 則數」計費，
-  // 只在「新增配送單」（見上面 POST /deliveries）發送，避免用量太快超過免費額度。
 });
 
 router.delete('/deliveries/:id', requireStore,
