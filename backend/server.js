@@ -66,7 +66,8 @@ setInterval(autoRescheduleMissedDeliveries, 10 * 60 * 1000).unref();
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+// verify 選項順便保留原始 body（rawBody），LINE webhook 驗證簽章需要用到未經解析的原始位元組
+app.use(express.json({ verify: (req, res, buf) => { req.rawBody = buf; } }));
 app.use(express.urlencoded({ extended: true }));
 
 // 靜態檔案 - 上傳的圖片（優先使用 Volume 路徑）
@@ -87,6 +88,7 @@ app.use('/api/contact', require('./routes/contact'));
 app.use('/api/stores', require('./routes/stores'));
 app.use('/api/faqs', require('./routes/faqs'));
 app.use('/api/board', require('./routes/board'));
+app.use('/api/line', require('./routes/line-webhook'));
 
 // 健康檢查
 app.get('/api/health', (req, res) => {
