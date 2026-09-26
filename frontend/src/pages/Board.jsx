@@ -1143,7 +1143,9 @@ function HistoryTab({ stores }) {
   const [merged, setMerged] = useState(null)
   const [visibleCount, setVisibleCount] = useState(HISTORY_PAGE_SIZE)
 
-  const search = async () => {
+  const [exporting, setExporting] = useState(false)
+
+  const buildParams = () => {
     const params = {}
     if (store) params.store = store
     if (from) params.from = `${from} 00:00:00`
@@ -1151,7 +1153,27 @@ function HistoryTab({ stores }) {
     // 後端用字串比較日期區間，結束時間要用 endOfDay()（T 分隔）才能同時涵蓋兩種格式，
     // 用空白分隔會讓當天的配送單被字串比較誤判成「比結束時間晚」而被濾掉。
     if (to) params.to = endOfDay(to)
+    return params
+  }
 
+  const exportCsv = async () => {
+    setExporting(true)
+    try {
+      const blob = await api.get('/board/export', { params: buildParams(), responseType: 'blob' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `配送紀錄匯出_${from || '全部'}_${to || dateKey(new Date())}.csv`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) { toast.error(err.message || '匯出失敗') }
+    finally { setExporting(false) }
+  }
+
+  const search = async () => {
+    const params = buildParams()
     try {
       const [deliveries, stock, comments, statusLog] = await Promise.all([
         api.get('/board/deliveries', { params }),
@@ -1202,7 +1224,13 @@ function HistoryTab({ stores }) {
               className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm" />
           </div>
         </div>
-        <button onClick={search} className="btn-primary text-sm py-2 px-6">查詢</button>
+        <div className="flex gap-2">
+          <button onClick={search} className="btn-primary text-sm py-2 px-6">查詢</button>
+          <button onClick={exportCsv} disabled={exporting}
+            className="text-sm py-2 px-6 border border-gray-200 rounded-sm text-gray-600 hover:border-primary hover:text-primary disabled:opacity-60">
+            {exporting ? '匯出中...' : '📥 匯出 CSV（可用 Excel 開啟）'}
+          </button>
+        </div>
       </div>
 
       <div className="space-y-3">

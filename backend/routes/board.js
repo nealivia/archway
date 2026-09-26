@@ -313,4 +313,75 @@ router.get('/status-log', (req, res) => {
   res.json({ success: true, data: rows });
 });
 
+// ================= 匯出 CSV（Excel 可直接開啟）=================
+// 用 CSV 而不是真的 .xlsx 二進位格式：不用額外套件、內容單純、Excel 雙擊就能開，維護起來也最不容易出錯。
+function csvCell(v) {
+  const s = v === null || v === undefined ? '' : String(v);
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+function csvRow(arr) {
+  return arr.map(csvCell).join(',');
+}
+function transferSummary(d) {
+  const from = d.transfer_from || d.store_name || '';
+  const to = d.transfer_to || '';
+  return `${from} → ${to}${d.transfer_item ? `（${d.transfer_item}）` : ''}`;
+}
+
+router.get('/export', (req, res) => {
+  const deliveriesQ = buildFilter(req, 'd', 'delivery_time');
+  const stockQ = buildFilter(req, 'd', 'updated_at');
+  const commentsQ = buildFilter(req, 'c', 'created_at');
+  const logQ = buildFilter(req, 'l', 'created_at');
+
+  const deliveries = db.prepare(`
+    SELECT d.*, s.name AS store_name FROM board_deliveries d
+    JOIN stores s ON s.id = d.store_id
+    ${deliveriesQ.sql} ORDER BY d.delivery_time
+  `).all(...deliveriesQ.params);
+  const stock = db.prepare(`
+    SELECT d.*, s.name AS store_name FROM board_stock d
+    JOIN stores s ON s.id = d.store_id
+    ${stockQ.sql} ORDER BY d.updated_at
+  `).all(...stockQ.params);
+  const comments = db.prepare(`
+    SELECT c.*, s.name AS store_name FROM board_comments c
+    JOIN stores s ON s.id = c.store_id
+    ${commentsQ.sql} ORDER BY c.created_at
+  `).all(...commentsQ.params);
+  const statusLog = db.prepare(`
+    SELECT l.*, s.name AS store_name FROM board_status_log l
+    JOIN stores s ON s.id = l.store_id
+    ${logQ.sql} ORDER BY l.created_at
+  `).all(...logQ.params);
+
+  // 配送單時間存的是 'T' 分隔（例如 2026-09-26T08:00），其他表則是 SQLite datetime('now') 的空白分隔格式，
+  // 統一成空白分隔再排序/輸出，不然字串排序會把同一天的資料排錯順序（' ' 在 ASCII 排序上比 'T' 小）。
+  const normalizeTime = (dt) => (dt || '').replace('T', ' ');
+
+  const rows = [];
+  for (const d of deliveries) {
+    const content = d.delivery_type === '分店調撥' ? transferSummary(d) : `${d.location}${d.customer_name ? `／${d.customer_name}` : ''}`;
+    rows.push([normalizeTime(d.delivery_time), d.delivery_type === '分店調撥' ? '分店調撥' : '配送單', d.store_name, content, d.status, d.created_by]);
+  }
+  for (const s of stock) {
+    rows.push([s.updated_at, '缺訂貨', s.store_name, `${s.item_name}${s.note ? `／${s.note}` : ''}`, s.status, s.created_by]);
+  }
+  for (const c of comments) {
+    rows.push([c.created_at, '留言', c.store_name, c.message, '', c.created_by]);
+  }
+  for (const l of statusLog) {
+    rows.push([l.created_at, '狀態變更', l.store_name, `${l.from_status || ''} → ${l.to_status}`, '', l.changed_by]);
+  }
+  rows.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+  rows.unshift(['時間', '類型', '分店', '內容', '狀態', '上傳者/操作人']);
+
+  // 開頭加 UTF-8 BOM，不然 Excel 開啟中文 CSV 常常會顯示成亂碼
+  const csv = '﻿' + rows.map(csvRow).join('\r\n');
+  const filename = `board-export-${(req.query.from || '全部')}_${(req.query.to || '')}.csv`.replace(/[:/\\]/g, '-');
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+  res.send(csv);
+});
+
 module.exports = router;
