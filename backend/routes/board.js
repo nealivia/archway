@@ -239,13 +239,8 @@ router.put('/deliveries/:id', attachStoreId, (req, res) => {
   `).run(delivery_time, v.location, v.content, newStatus, v.customer_name, v.customer_contact, v.delivery_type, v.transfer_from, v.transfer_to, v.transfer_item, req.params.id);
   logStatusChange(row.store_id, req.user.username, 'delivery', req.params.id, row.status, newStatus);
   res.json({ success: true, message: '已更新' });
-
-  // 狀態有變更時通知 LINE 群組（背景執行，不影響已經回應成功的請求）
-  if (statusChanged) {
-    const storeRow = db.prepare('SELECT name FROM stores WHERE id = ?').get(row.store_id);
-    const target = v.delivery_type === '分店調撥' ? `${v.transfer_from} → ${v.transfer_to}` : `📍 ${v.location}`;
-    sendLineGroupMessage([`📦 配送狀態更新（${storeRow?.name || ''}）`, target, `${row.status} → ${newStatus}`, `操作人：${req.user.username}`].join('\n'));
-  }
+  // 註：狀態變更不發 LINE 通知——LINE 推播到群組是「群組人數 x 則數」計費，
+  // 只在「新增配送單」（見上面 POST /deliveries）發送，避免用量太快超過免費額度。
 });
 
 router.delete('/deliveries/:id', requireStore,
