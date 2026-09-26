@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { initDatabase, cleanupOldBoardRecords, autoRescheduleMissedDeliveries } = require('./database');
+const { initDatabase, cleanupOldBoardRecords, autoRescheduleMissedDeliveries, syncTaiwanHolidays } = require('./database');
 
 // ── JWT_SECRET 強度驗證（啟動時檢查）────────────────────────────────────────
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -63,6 +63,17 @@ setInterval(cleanupOldBoardRecords, 24 * 60 * 60 * 1000).unref();
 // 每 10 分鐘檢查一次，啟動時也先跑一次（避免伺服器剛好在時段切換點重啟而漏檢查）。
 autoRescheduleMissedDeliveries();
 setInterval(autoRescheduleMissedDeliveries, 10 * 60 * 1000).unref();
+
+// 自動同步台灣國定假日（今年+明年），讓自動改期跟月曆不用手動輸入國定假日。
+// 每天重跑一次：跨年時能補上新年度資料，資料來源(TaiwanCalendar)本身若有修正也能跟著更新。
+function runHolidaySync() {
+  const y = new Date().getFullYear();
+  syncTaiwanHolidays([y, y + 1])
+    .then(count => console.log(`🎌 台灣國定假日同步完成，共 ${count} 筆`))
+    .catch(err => console.error('⚠️ 台灣國定假日同步失敗：', err.message));
+}
+runHolidaySync();
+setInterval(runHolidaySync, 24 * 60 * 60 * 1000).unref();
 
 // Middleware
 app.use(cors());

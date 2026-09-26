@@ -1193,12 +1193,23 @@ function HolidaysTab() {
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState({ date: '', note: '' })
   const [saving, setSaving] = useState(false)
+  const [syncing, setSyncing] = useState(false)
 
   const load = () => {
     setLoading(true)
     api.get('/holidays').then(r => setList(r.data || [])).catch(() => toast.error('假日清單載入失敗')).finally(() => setLoading(false))
   }
   useEffect(() => { load() }, [])
+
+  const syncNow = async () => {
+    setSyncing(true)
+    try {
+      const r = await api.post('/holidays/sync-taiwan')
+      toast.success(`已同步台灣國定假日，共 ${r.count} 筆`)
+      load()
+    } catch (err) { toast.error(err.message || '同步失敗') }
+    finally { setSyncing(false) }
+  }
 
   const submit = async (e) => {
     e.preventDefault()
@@ -1224,10 +1235,13 @@ function HolidaysTab() {
 
   return (
     <div className="max-w-xl">
-      <p className="text-xs text-gray-500 mb-4">
+      <p className="text-xs text-gray-500 mb-2">
         逾時未出車的配送單自動改期到「下一個可配送日」時，除了跳過週六日，也會跳過這裡設定的日期。
-        國定假日每年不一樣，建議年初或連假前先把當年度的國定假日/連假加進來。
+        系統每天會自動同步台灣國定假日(含補假)，不用手動輸入；如果需要加公司自訂的休假日，可以在下面手動新增。
       </p>
+      <button onClick={syncNow} disabled={syncing} className="text-xs text-primary underline mb-4 disabled:opacity-60">
+        {syncing ? '同步中...' : '立即重新同步台灣國定假日'}
+      </button>
       <form onSubmit={submit} className="flex flex-wrap items-end gap-2 mb-6 bg-white border border-gray-200 rounded-sm p-4">
         <div>
           <label className="block text-xs text-gray-500 mb-1">日期</label>
@@ -1251,7 +1265,12 @@ function HolidaysTab() {
         <div className="space-y-2">
           {list.map(h => (
             <div key={h.date} className="flex items-center justify-between border border-gray-200 rounded-sm px-4 py-2.5 bg-white">
-              <span className="text-sm text-dark">{h.date}{h.note && <span className="text-gray-400">・{h.note}</span>}</span>
+              <span className="text-sm text-dark">
+                {h.date}{h.note && <span className="text-gray-400">・{h.note}</span>}
+                <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${h.source === 'manual' ? 'bg-blue-50 text-blue-500' : 'bg-amber-50 text-amber-600'}`}>
+                  {h.source === 'manual' ? '手動' : '自動'}
+                </span>
+              </span>
               <button onClick={() => remove(h.date)} className="text-xs text-red-500 underline">移除</button>
             </div>
           ))}

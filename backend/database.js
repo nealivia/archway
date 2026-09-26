@@ -274,6 +274,9 @@ function initDatabase() {
   try { db.exec("ALTER TABLE board_deliveries ADD COLUMN transfer_item TEXT NOT NULL DEFAULT ''"); } catch (e) { /* 已存在 */ }
   // 送達證明照片路徑（切換成「已送達」時可以順手拍照上傳，之後有糾紛可以回頭查）
   try { db.exec("ALTER TABLE board_deliveries ADD COLUMN proof_photo TEXT NOT NULL DEFAULT ''"); } catch (e) { /* 已存在 */ }
+  // 假日來源：'auto'=系統自動從台灣國定假日資料同步，'manual'=超級管理員手動新增/修改過。
+  // 同步台灣假日時只會覆蓋 source='auto' 的資料，不會動到手動調整過的日期，避免自動同步蓋掉人工修正。
+  try { db.exec("ALTER TABLE board_holidays ADD COLUMN source TEXT NOT NULL DEFAULT 'manual'"); } catch (e) { /* 已存在 */ }
 
   // 初始化分店登入帳號（僅在該分店尚無帳號時建立，密碼隨機產生，只顯示一次）
   const boardUsernameMap = { '和平店': 'heping', '板橋店': 'banqiao', '樹林 Sika 展示店': 'shulin' };
@@ -396,6 +399,42 @@ function isHoliday(dateStr) {
   return !!db.prepare('SELECT 1 FROM board_holidays WHERE date = ?').get(dateStr);
 }
 
+// 自動同步台灣國定假日：資料來源是公開維護的 TaiwanCalendar 專案(整理自政府行政機關辦公日曆表)，
+// 只挑「isHoliday=true 且不是週六日」的日期匯入(週六日本來就已經跳過，不用重複記)，
+// 過年調整放假(補假)也算在內，因為那天司機一樣不會出車。
+// 只會覆蓋 source='auto' 的舊資料，超級管理員手動新增/編輯過的假日(source='manual')不會被蓋掉。
+async function fetchTaiwanHolidayYear(year) {
+  const url = `https://cdn.jsdelivr.net/gh/ruyut/TaiwanCalendar/data/${year}.json`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`台灣假日資料下載失敗(${year})：HTTP ${res.status}`);
+  const days = await res.json();
+  return days
+    .filter(d => d.isHoliday && d.week !== '六' && d.week !== '日')
+    .map(d => ({
+      date: `${d.date.slice(0, 4)}-${d.date.slice(4, 6)}-${d.date.slice(6, 8)}`,
+      note: d.description || '國定假日'
+    }));
+}
+
+async function syncTaiwanHolidays(years) {
+  const upsert = db.prepare(`
+    INSERT INTO board_holidays (date, note, source) VALUES (?, ?, 'auto')
+    ON CONFLICT(date) DO UPDATE SET note = excluded.note, source = 'auto'
+    WHERE board_holidays.source != 'manual'
+  `);
+  let count = 0;
+  for (const year of years) {
+    try {
+      const list = await fetchTaiwanHolidayYear(year);
+      for (const r of list) upsert.run(r.date, r.note);
+      count += list.length;
+    } catch (e) {
+      console.error(`⚠️ 同步台灣假日失敗(${year}年）：${e.message}`);
+    }
+  }
+  return count;
+}
+
 function nextAvailableWeekday(dateStr) {
   const d = new Date(`${dateStr}T00:00:00`);
   const fmt = () => {
@@ -454,4 +493,4 @@ function autoRescheduleMissedDeliveries() {
   }
 }
 
-module.exports = { db, initDatabase, cleanupOldBoardRecords, autoRescheduleMissedDeliveries };
+module.exports = { db, initDatabase, cleanupOldBoardRecords, autoRescheduleMissedDeliveries, syncTaiwanHolidays };
