@@ -198,6 +198,7 @@ export default function Board() {
   const [previewIdentity, setPreviewIdentity] = useState(null) // null | { type: 'store', id } | { type: 'driver' }
   const [previewMenuOpen, setPreviewMenuOpen] = useState(false)
   const previewing = isRealSuperAdmin && !!previewIdentity
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
 
   const isDriver = isRealDriver || (previewing && previewIdentity.type === 'driver')
 
@@ -313,9 +314,12 @@ export default function Board() {
               )}
             </span>
           )}
+          <button onClick={() => setShowPasswordModal(true)} className="ml-2 text-gray-400 underline text-xs py-1.5 px-0.5">修改密碼</button>
           <button onClick={logout} className="ml-2 text-gray-400 underline text-xs py-1.5 px-0.5">登出</button>
         </div>
       </div>
+
+      {showPasswordModal && <ChangePasswordModal onClose={() => setShowPasswordModal(false)} />}
 
       <div className="flex gap-1 border-b border-gray-200 mb-5 overflow-x-auto">
         {visibleTabs.map(t => (
@@ -334,6 +338,55 @@ export default function Board() {
       {activeTab === 'comments' && <CommentsTab storeId={storeId} />}
       {activeTab === 'history' && <HistoryTab stores={stores} />}
       {activeTab === 'holidays' && isRealSuperAdmin && !previewing && <HolidaysTab />}
+    </div>
+  )
+}
+
+// ================= 修改密碼（分店/司機/超級管理員都能自己改，不用再麻煩超級管理員代改） =================
+function ChangePasswordModal({ onClose }) {
+  const [form, setForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' })
+  const [saving, setSaving] = useState(false)
+
+  const submit = async (e) => {
+    e.preventDefault()
+    if (!form.oldPassword || !form.newPassword) return toast.error('請填寫完整')
+    if (form.newPassword.length < 8) return toast.error('新密碼至少需要 8 個字元')
+    if (form.newPassword !== form.confirmPassword) return toast.error('兩次輸入的新密碼不一致')
+    setSaving(true)
+    try {
+      await api.put('/auth/change-password', { oldPassword: form.oldPassword, newPassword: form.newPassword })
+      toast.success('密碼修改成功，下次登入請用新密碼')
+      onClose()
+    } catch (err) { toast.error(err.message || '修改失敗') }
+    finally { setSaving(false) }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4" onClick={onClose}>
+      <div className="bg-white rounded-sm p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+        <h2 className="font-semibold text-dark mb-4">修改密碼</h2>
+        <form onSubmit={submit} className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">目前密碼</label>
+            <input type="password" value={form.oldPassword} onChange={e => setForm(f => ({ ...f, oldPassword: e.target.value }))}
+              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" autoFocus />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">新密碼（至少 8 個字元）</label>
+            <input type="password" value={form.newPassword} onChange={e => setForm(f => ({ ...f, newPassword: e.target.value }))}
+              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">確認新密碼</label>
+            <input type="password" value={form.confirmPassword} onChange={e => setForm(f => ({ ...f, confirmPassword: e.target.value }))}
+              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+          </div>
+          <div className="flex gap-3 justify-end pt-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-200 text-sm rounded-sm hover:bg-gray-50">取消</button>
+            <button type="submit" disabled={saving} className="btn-primary text-sm py-2 px-5 disabled:opacity-60">{saving ? '儲存中...' : '確認修改'}</button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
