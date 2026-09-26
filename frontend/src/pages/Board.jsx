@@ -521,7 +521,12 @@ function TodayOverviewTab({ stores, storeId, canChangeStatus }) {
                           )}
                         </p>
                         {(item.customer_name || item.customer_contact) && (
-                          <p className="text-xs text-gray-500 mt-0.5">👤 {item.customer_name}{item.customer_contact ? `｜${item.customer_contact}` : ''}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            👤 {item.customer_name}
+                            {item.customer_contact && (
+                              <>｜<a href={telLink(item.customer_contact)} className="text-primary underline">{item.customer_contact}</a></>
+                            )}
+                          </p>
                         )}
                         {item.content && <p className="text-xs text-gray-500 mt-0.5 whitespace-pre-wrap">{item.content}</p>}
                       </>
@@ -557,6 +562,13 @@ function TodayOverviewTab({ stores, storeId, canChangeStatus }) {
 // 司機點了就會跳轉到 Google Maps App／網頁幫忙導航，免費、不會有額外的用量費用問題。
 function mapLink(address) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
+}
+
+// 電話自動轉跳：手機上點了會直接跳出撥號畫面。只留數字跟開頭的+號(國際碼)，
+// 客戶電話常常會混雜「-」「(02)」「轉123」之類的格式，撥號用的 tel: 連結要先把這些清掉才能正常撥出去。
+function telLink(contact) {
+  const digits = (contact || '').replace(/[^0-9+]/g, '')
+  return `tel:${digits}`
 }
 
 // ================= 配送單（行事曆檢視） =================
@@ -832,7 +844,12 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
                   )}
                 </p>
                 {(item.customer_name || item.customer_contact) && (
-                  <p className="text-xs text-gray-500 mt-1">👤 {item.customer_name}{item.customer_contact ? `｜${item.customer_contact}` : ''}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    👤 {item.customer_name}
+                    {item.customer_contact && (
+                      <>｜<a href={telLink(item.customer_contact)} className="text-primary underline">{item.customer_contact}</a></>
+                    )}
+                  </p>
                 )}
               </>
             )}
