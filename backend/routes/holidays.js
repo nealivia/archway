@@ -5,14 +5,16 @@ const router = express.Router();
 const { db } = require('../database');
 const { authenticateToken, requireSuperAdmin } = require('../middleware/auth');
 
-router.use(authenticateToken, requireSuperAdmin);
+// 查詢清單開放給所有已登入的佈告欄使用者（分店/司機/超級管理員），
+// 讓月曆能標示假日；新增/刪除假日仍僅限超級管理員。
+router.use(authenticateToken);
 
 router.get('/', (req, res) => {
   const rows = db.prepare('SELECT date, note FROM board_holidays ORDER BY date').all();
   res.json({ success: true, data: rows });
 });
 
-router.post('/', (req, res) => {
+router.post('/', requireSuperAdmin, (req, res) => {
   const { date, note } = req.body;
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return res.status(400).json({ success: false, message: '日期格式錯誤，需為 YYYY-MM-DD' });
@@ -24,7 +26,7 @@ router.post('/', (req, res) => {
   res.status(201).json({ success: true });
 });
 
-router.delete('/:date', (req, res) => {
+router.delete('/:date', requireSuperAdmin, (req, res) => {
   db.prepare('DELETE FROM board_holidays WHERE date = ?').run(req.params.date);
   res.json({ success: true });
 });

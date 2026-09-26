@@ -584,6 +584,12 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
   const [viewMonth, setViewMonth] = useState(() => { const d = new Date(); d.setDate(1); return d })
   const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date()))
   const formRef = useRef(null)
+  // 國定假日清單：用來在月曆上標示，跟自動改期用的是同一份設定(board_holidays)
+  const [holidays, setHolidays] = useState([])
+  useEffect(() => {
+    api.get('/holidays').then(r => setHolidays(r.data || [])).catch(() => {})
+  }, [])
+  const holidayNote = holidays.reduce((acc, h) => { acc[h.date] = h.note; return acc }, {})
 
   // 月曆只顯示某個月份（含前後補齊的格子），依區間向後端查詢，避免每次輪詢都抓全部歷史配送單
   const load = useCallback(() => {
@@ -761,12 +767,16 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
           const items = byDate[k] || []
           const inMonth = d.getMonth() === viewMonth.getMonth()
           const isWeekend = d.getDay() === 0 || d.getDay() === 6
+          const isHoliday = !!holidayNote[k]
           return (
-            <div key={idx} onClick={() => pickDay(d)}
-              className={`min-h-[64px] p-1 cursor-pointer ${isWeekend ? 'bg-gray-100 hover:bg-gray-200' : 'bg-white hover:bg-gray-50'} ${k === selectedDate ? 'ring-2 ring-inset ring-primary' : ''}`}>
-              <div className={`text-[11px] mb-1 ${!inMonth ? 'text-gray-300' : isWeekend ? 'text-gray-400' : (k === today ? 'text-primary font-bold' : 'text-gray-600')}`}>
-                {d.getDate()}
+            <div key={idx} onClick={() => pickDay(d)} title={isHoliday ? `國定假日：${holidayNote[k] || ''}` : undefined}
+              className={`min-h-[64px] p-1 cursor-pointer ${isHoliday ? 'bg-amber-50 hover:bg-amber-100' : isWeekend ? 'bg-gray-100 hover:bg-gray-200' : 'bg-white hover:bg-gray-50'} ${k === selectedDate ? 'ring-2 ring-inset ring-primary' : ''}`}>
+              <div className={`text-[11px] mb-1 flex items-center gap-1 ${!inMonth ? 'text-gray-300' : isHoliday ? 'text-amber-600 font-bold' : isWeekend ? 'text-gray-400' : (k === today ? 'text-primary font-bold' : 'text-gray-600')}`}>
+                {d.getDate()}{isHoliday && inMonth && <span>🎌</span>}
               </div>
+              {isHoliday && inMonth && (
+                <div className="truncate text-[10px] text-amber-600 mb-0.5">{holidayNote[k]}</div>
+              )}
               <div className="space-y-0.5">
                 {items.slice(0, 2).map(it => (
                   <div key={it.id} className="truncate text-white rounded-sm px-1 py-0.5 text-[10px]"
