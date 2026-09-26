@@ -181,7 +181,8 @@ function useCrossBoardAlerts(enabled) {
 export default function Board() {
   const { user, logout } = useAuth()
   const isStoreAccount = user?.role === 'store'
-  const isDriver = user?.role === 'driver'
+  const isRealDriver = user?.role === 'driver'
+  const isRealSuperAdmin = user?.role === 'super_admin'
 
   // store 角色：身分固定為自己帳號綁定的分店。admin/super_admin（總部）：可自行切換代操分店。
   // driver（司機）不綁定分店，不需要選店，也不會有 storeId。
@@ -191,30 +192,50 @@ export default function Board() {
   const { enabled: notifyEnabled, enableNotifications, disableNotifications } = useBoardNotifications()
   useCrossBoardAlerts(notifyEnabled)
 
+  // 超級管理員專用：「身分預覽」模式，可以完整模擬和平/板橋/樹林/司機實際會看到的畫面
+  // （不套用超級管理員的萬用權限），方便上線前確認各分店看到的內容是否正確。
+  // previewIdentity 為 null 表示沒有在預覽，是平常代操分店的模式（保留原本的萬用權限）。
+  const [previewIdentity, setPreviewIdentity] = useState(null) // null | { type: 'store', id } | { type: 'driver' }
+  const [previewMenuOpen, setPreviewMenuOpen] = useState(false)
+  const previewing = isRealSuperAdmin && !!previewIdentity
+
+  const isDriver = isRealDriver || (previewing && previewIdentity.type === 'driver')
+
   useEffect(() => {
     api.get('/stores').then(r => setStores(r.data || [])).catch(() => toast.error('分店清單載入失敗'))
   }, [])
 
-  const storeId = isStoreAccount ? String(user.store_id) : (isDriver ? '' : pickedStoreId)
+  const rawStoreId = isStoreAccount ? String(user.store_id) : (isRealDriver ? '' : pickedStoreId)
+  const storeId = previewing
+    ? (previewIdentity.type === 'driver' ? '' : String(previewIdentity.id))
+    : rawStoreId
 
-  // 所有配送都由和平店（總店）統一控制司機排程，只有和平店帳號、司機帳號、或超級管理員能切換配送狀態
+  // 所有配送都由和平店（總店）統一控制司機排程，只有和平店帳號、司機帳號、或超級管理員能切換配送狀態；
+  // 預覽模式底下不套用「超級管理員一律可以」這條，才能如實模擬被預覽的分店實際看得到什麼。
   const controlStoreId = stores.find(s => s.name === '和平店')?.id
-  const canChangeDeliveryStatus = user?.role === 'super_admin' || isDriver || (!!controlStoreId && String(storeId) === String(controlStoreId))
+  const canChangeDeliveryStatus = previewing
+    ? (isDriver || (!!controlStoreId && String(storeId) === String(controlStoreId)))
+    : (isRealSuperAdmin || isRealDriver || (!!controlStoreId && String(storeId) === String(controlStoreId)))
+
+  // 預覽模式下也不給超級管理員的「可編輯/刪除任何一筆」萬用權限，才能如實模擬
+  const isSuperAdminPowers = isRealSuperAdmin && !previewing
 
   const chooseStore = (id) => {
     setPickedStoreId(String(id))
     localStorage.setItem(STORE_KEY, String(id))
   }
 
-  const currentStoreName = isStoreAccount
-    ? (stores.find(s => String(s.id) === storeId)?.name || user.username)
-    : isDriver
-      ? `🚚 ${user.username}（司機）`
-      : (stores.find(s => String(s.id) === String(storeId))?.name || '')
+  const currentStoreName = previewing
+    ? `🔍 預覽中：${previewIdentity.type === 'driver' ? '司機' : storeName(stores, previewIdentity.id)}`
+    : isStoreAccount
+      ? (stores.find(s => String(s.id) === storeId)?.name || user.username)
+      : isRealDriver
+        ? `🚚 ${user.username}（司機）`
+        : (stores.find(s => String(s.id) === String(storeId))?.name || '')
 
   const visibleTabs = isDriver ? TABS.filter(t => t.key !== 'stock' && t.key !== 'comments') : TABS
 
-  if (!isStoreAccount && !isDriver && !storeId) {
+  if (!isStoreAccount && !isRealDriver && !previewing && !storeId) {
     return (
       <div className="max-w-sm mx-auto mt-24 px-4">
         <h1 className="text-xl font-bold text-dark mb-1">分店電子佈告欄</h1>
@@ -228,6 +249,23 @@ export default function Board() {
           ))}
           {stores.length === 0 && <p className="text-sm text-gray-400">載入中...</p>}
         </div>
+        {isRealSuperAdmin && stores.length > 0 && (
+          <div className="mt-6 pt-5 border-t border-gray-100">
+            <p className="text-xs text-gray-400 mb-2">或直接以「身分預覽」檢視各分店/司機實際看到的畫面：</p>
+            <div className="flex flex-wrap gap-2">
+              {stores.map(s => (
+                <button key={s.id} onClick={() => setPreviewIdentity({ type: 'store', id: s.id })}
+                  className="text-xs border border-gray-200 rounded-full px-3 py-1.5 text-gray-500 hover:border-primary hover:text-primary transition-colors">
+                  🔍 {s.name}
+                </button>
+              ))}
+              <button onClick={() => setPreviewIdentity({ type: 'driver' })}
+                className="text-xs border border-gray-200 rounded-full px-3 py-1.5 text-gray-500 hover:border-primary hover:text-primary transition-colors">
+                🔍 🚚 司機
+              </button>
+            </div>
+          </div>
+        )}
         <button onClick={logout} className="text-xs text-gray-400 underline mt-6">登出</button>
       </div>
     )
@@ -235,6 +273,12 @@ export default function Board() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
+      {previewing && (
+        <div className="bg-amber-50 border border-amber-300 text-amber-800 text-xs rounded-sm px-4 py-2.5 mb-4 flex items-center justify-between flex-wrap gap-2">
+          <span>🔍 目前是「身分預覽」模式，畫面會如實模擬 <b>{previewIdentity.type === 'driver' ? '司機' : storeName(stores, previewIdentity.id)}</b> 實際登入看到的內容（不套用超級管理員的萬用權限）。</span>
+          <button onClick={() => setPreviewIdentity(null)} className="text-amber-800 underline font-medium shrink-0">結束預覽</button>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h1 className="text-xl font-bold text-dark">📋 分店電子佈告欄</h1>
         <div className="flex items-center flex-wrap gap-x-1 gap-y-1 text-sm text-gray-500">
@@ -244,9 +288,28 @@ export default function Board() {
             className={`ml-2 underline text-xs py-1.5 px-0.5 ${notifyEnabled ? 'text-primary' : 'text-gray-400'}`}>
             {notifyEnabled ? '🔔 新資料提醒已開啟' : '🔕 開啟新資料提醒'}
           </button>
-          {!isStoreAccount && !isDriver && (
+          {!isStoreAccount && !isRealDriver && !previewing && (
             <button onClick={() => { setPickedStoreId(''); localStorage.removeItem(STORE_KEY) }}
               className="ml-2 text-primary underline text-xs py-1.5 px-0.5">切換分店</button>
+          )}
+          {isRealSuperAdmin && !previewing && (
+            <span className="relative ml-2">
+              <button onClick={() => setPreviewMenuOpen(o => !o)} className="text-primary underline text-xs py-1.5 px-0.5">🔍 身分預覽</button>
+              {previewMenuOpen && (
+                <span className="absolute right-0 top-full bg-white border border-gray-200 rounded-sm shadow-lg py-1 z-10 min-w-[160px]">
+                  {stores.map(s => (
+                    <button key={s.id} onClick={() => { setPreviewIdentity({ type: 'store', id: s.id }); setPreviewMenuOpen(false) }}
+                      className="block w-full text-left px-4 py-2 text-xs text-gray-600 hover:bg-gray-50 hover:text-primary whitespace-nowrap">
+                      {s.name}
+                    </button>
+                  ))}
+                  <button onClick={() => { setPreviewIdentity({ type: 'driver' }); setPreviewMenuOpen(false) }}
+                    className="block w-full text-left px-4 py-2 text-xs text-gray-600 hover:bg-gray-50 hover:text-primary whitespace-nowrap">
+                    🚚 司機
+                  </button>
+                </span>
+              )}
+            </span>
           )}
           <button onClick={logout} className="ml-2 text-gray-400 underline text-xs py-1.5 px-0.5">登出</button>
         </div>
@@ -264,7 +327,7 @@ export default function Board() {
       </div>
 
       {activeTab === 'today' && <TodayOverviewTab stores={stores} storeId={storeId} canChangeStatus={canChangeDeliveryStatus} />}
-      {activeTab === 'deliveries' && <DeliveriesTab storeId={storeId} stores={stores} canChangeStatus={canChangeDeliveryStatus} isSuperAdmin={user?.role === 'super_admin'} />}
+      {activeTab === 'deliveries' && <DeliveriesTab storeId={storeId} stores={stores} canChangeStatus={canChangeDeliveryStatus} isSuperAdmin={isSuperAdminPowers} />}
       {activeTab === 'stock' && <StockTab storeId={storeId} stores={stores} />}
       {activeTab === 'comments' && <CommentsTab storeId={storeId} />}
       {activeTab === 'history' && <HistoryTab stores={stores} />}
