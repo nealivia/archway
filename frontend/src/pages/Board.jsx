@@ -445,7 +445,13 @@ function TodayOverviewTab({ stores, storeId, canChangeStatus }) {
                       </>
                     ) : (
                       <>
-                        <p className="text-sm text-dark mt-1">📍 {item.location}</p>
+                        <p className="text-sm text-dark mt-1">
+                          📍 {item.location}
+                          {item.location && (
+                            <a href={mapLink(item.location)} target="_blank" rel="noopener noreferrer"
+                              className="ml-2 text-xs text-primary underline whitespace-nowrap">在地圖開啟</a>
+                          )}
+                        </p>
                         {(item.customer_name || item.customer_contact) && (
                           <p className="text-xs text-gray-500 mt-0.5">👤 {item.customer_name}{item.customer_contact ? `｜${item.customer_contact}` : ''}</p>
                         )}
@@ -464,6 +470,12 @@ function TodayOverviewTab({ stores, storeId, canChangeStatus }) {
       ))}
     </div>
   )
+}
+
+// 地址開地圖：直接組 Google Maps 搜尋連結，不用申請地圖API金鑰、不用把地址轉經緯度，
+// 司機點了就會跳轉到 Google Maps App／網頁幫忙導航，免費、不會有額外的用量費用問題。
+function mapLink(address) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
 }
 
 // ================= 配送單（行事曆檢視） =================
@@ -711,7 +723,13 @@ function DeliveriesTab({ storeId, stores, canChangeStatus, isSuperAdmin }) {
               </>
             ) : (
               <>
-                <p className="text-sm text-dark mt-2 whitespace-pre-wrap">📍 {item.location}{item.content ? `\n${item.content}` : ''}</p>
+                <p className="text-sm text-dark mt-2 whitespace-pre-wrap">
+                  📍 {item.location}{item.content ? `\n${item.content}` : ''}
+                  {item.location && (
+                    <a href={mapLink(item.location)} target="_blank" rel="noopener noreferrer"
+                      className="ml-2 text-xs text-primary underline whitespace-nowrap">在地圖開啟</a>
+                  )}
+                </p>
                 {(item.customer_name || item.customer_contact) && (
                   <p className="text-xs text-gray-500 mt-1">👤 {item.customer_name}{item.customer_contact ? `｜${item.customer_contact}` : ''}</p>
                 )}
