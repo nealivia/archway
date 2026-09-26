@@ -233,7 +233,9 @@ export default function Board() {
         ? `🚚 ${user.username}（司機）`
         : (stores.find(s => String(s.id) === String(storeId))?.name || '')
 
-  const visibleTabs = isDriver ? TABS.filter(t => t.key !== 'stock' && t.key !== 'comments') : TABS
+  const visibleTabs = isDriver
+    ? TABS.filter(t => t.key !== 'stock' && t.key !== 'comments')
+    : (isRealSuperAdmin && !previewing ? [...TABS, { key: 'holidays', label: '⚙️ 假日設定' }] : TABS)
 
   if (!isStoreAccount && !isRealDriver && !previewing && !storeId) {
     return (
@@ -331,6 +333,7 @@ export default function Board() {
       {activeTab === 'stock' && <StockTab storeId={storeId} stores={stores} />}
       {activeTab === 'comments' && <CommentsTab storeId={storeId} />}
       {activeTab === 'history' && <HistoryTab stores={stores} />}
+      {activeTab === 'holidays' && isRealSuperAdmin && !previewing && <HolidaysTab />}
     </div>
   )
 }
@@ -1050,6 +1053,82 @@ function CommentsTab({ storeId }) {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+// ================= 假日設定（僅超級管理員）=================
+// 自動改期功能判斷「下一個可配送日」時，除了跳過週六日，也會跳過這裡設定的日期，
+// 避免逾時未出車的配送單被系統誤排到國定假日（司機當天通常沒出車）。
+function HolidaysTab() {
+  const [list, setList] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [form, setForm] = useState({ date: '', note: '' })
+  const [saving, setSaving] = useState(false)
+
+  const load = () => {
+    setLoading(true)
+    api.get('/holidays').then(r => setList(r.data || [])).catch(() => toast.error('假日清單載入失敗')).finally(() => setLoading(false))
+  }
+  useEffect(() => { load() }, [])
+
+  const submit = async (e) => {
+    e.preventDefault()
+    if (!form.date) return toast.error('請選擇日期')
+    setSaving(true)
+    try {
+      await api.post('/holidays', form)
+      toast.success('已新增假日')
+      setForm({ date: '', note: '' })
+      load()
+    } catch (err) { toast.error(err.message || '新增失敗') }
+    finally { setSaving(false) }
+  }
+
+  const remove = async (date) => {
+    if (!confirm(`確定要移除 ${date} 這個假日設定嗎？`)) return
+    try {
+      await api.delete(`/holidays/${date}`)
+      toast.success('已移除')
+      load()
+    } catch { toast.error('移除失敗') }
+  }
+
+  return (
+    <div className="max-w-xl">
+      <p className="text-xs text-gray-500 mb-4">
+        逾時未出車的配送單自動改期到「下一個可配送日」時，除了跳過週六日，也會跳過這裡設定的日期。
+        國定假日每年不一樣，建議年初或連假前先把當年度的國定假日/連假加進來。
+      </p>
+      <form onSubmit={submit} className="flex flex-wrap items-end gap-2 mb-6 bg-white border border-gray-200 rounded-sm p-4">
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">日期</label>
+          <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+            className="border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+        </div>
+        <div className="flex-1 min-w-[140px]">
+          <label className="block text-xs text-gray-500 mb-1">備註（選填）</label>
+          <input value={form.note} placeholder="例如：中秋節"
+            onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
+            className="w-full border border-gray-200 px-3 py-2 text-sm rounded-sm focus:outline-none focus:border-primary" />
+        </div>
+        <button disabled={saving} className="btn-primary text-sm py-2 px-5 disabled:opacity-60">新增</button>
+      </form>
+
+      {loading ? (
+        <p className="text-sm text-gray-400">載入中...</p>
+      ) : list.length === 0 ? (
+        <p className="text-sm text-gray-400">目前沒有設定任何假日</p>
+      ) : (
+        <div className="space-y-2">
+          {list.map(h => (
+            <div key={h.date} className="flex items-center justify-between border border-gray-200 rounded-sm px-4 py-2.5 bg-white">
+              <span className="text-sm text-dark">{h.date}{h.note && <span className="text-gray-400">・{h.note}</span>}</span>
+              <button onClick={() => remove(h.date)} className="text-xs text-red-500 underline">移除</button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

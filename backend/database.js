@@ -238,6 +238,13 @@ function initDatabase() {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    -- 國定假日清單：自動改期(nextAvailableWeekday)判斷「下一個可配送日」時，除了跳過週六日，也會跳過這裡設定的日期
+    CREATE TABLE IF NOT EXISTS board_holidays (
+      date TEXT PRIMARY KEY,
+      note TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     -- 佈告欄常用查詢欄位加索引（依分店篩選、依日期排序/區間查詢、清理舊紀錄）
     CREATE INDEX IF NOT EXISTS idx_board_deliveries_time ON board_deliveries(delivery_time);
     CREATE INDEX IF NOT EXISTS idx_board_deliveries_store ON board_deliveries(store_id);
@@ -382,13 +389,20 @@ function periodCutoff(dateStr, period) {
   return new Date(`${dateStr}T${period === 'morning' ? '12:00:00' : '16:00:00'}+08:00`);
 }
 
+function isHoliday(dateStr) {
+  return !!db.prepare('SELECT 1 FROM board_holidays WHERE date = ?').get(dateStr);
+}
+
 function nextAvailableWeekday(dateStr) {
   const d = new Date(`${dateStr}T00:00:00`);
+  const fmt = () => {
+    const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
   do {
     d.setDate(d.getDate() + 1);
-  } while (d.getDay() === 0 || d.getDay() === 6); // 跳過週六（6）、週日（0），週六日不配送
-  const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  } while (d.getDay() === 0 || d.getDay() === 6 || isHoliday(fmt())); // 跳過週六日、以及 board_holidays 表裡設定的國定假日
+  return fmt();
 }
 
 function periodLabel(date, period) {

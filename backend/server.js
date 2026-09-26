@@ -87,6 +87,7 @@ app.use('/api/contact', require('./routes/contact'));
 app.use('/api/stores', require('./routes/stores'));
 app.use('/api/faqs', require('./routes/faqs'));
 app.use('/api/board', require('./routes/board'));
+app.use('/api/holidays', require('./routes/holidays'));
 
 // 健康檢查
 app.get('/api/health', (req, res) => {
