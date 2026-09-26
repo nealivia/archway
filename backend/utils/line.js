@@ -1,19 +1,21 @@
-// LINE Messaging API 群組推播：新增配送單／配送狀態變更時，自動發訊息到已連接的 LINE 群組。
+// LINE Messaging API 推播：新增配送單時，自動發一對一訊息通知司機。
+// 推播是「發給幾個人就算幾則」計費，一對一（推給司機一個人）比發到群組（算群組人數）省很多用量。
 // 需要在環境變數設定 LINE_CHANNEL_ACCESS_TOKEN（Messaging API 的長期存取權杖），
-// 群組 ID 則是透過 routes/line-webhook.js 收到的 webhook 事件自動記錄在 settings 表，不用手動填。
-// 沒有設定 token 或還沒有群組 ID 時，這裡的函式會安靜略過，不會影響配送單主要功能。
+// 收件者 ID（司機的 user ID，或群組 ID）則是透過 routes/line-webhook.js 收到的 webhook 事件
+// 自動記錄在 settings 表（key: line_recipient_id），不用手動去查。
+// 沒有設定 token 或還沒有收件者 ID 時，這裡的函式會安靜略過，不會影響配送單主要功能。
 const { db } = require('../database');
 
-function getGroupId() {
-  const row = db.prepare("SELECT value FROM settings WHERE key = 'line_group_id'").get();
+function getRecipientId() {
+  const row = db.prepare("SELECT value FROM settings WHERE key = 'line_recipient_id'").get();
   return row?.value || '';
 }
 
-async function sendLineGroupMessage(text) {
+async function sendLineMessage(text) {
   const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
   if (!token) return; // 還沒設定 LINE 串接，略過
-  const groupId = getGroupId();
-  if (!groupId) return; // 還沒有群組 ID（Bot 還沒被拉進群組發過話），略過
+  const recipientId = getRecipientId();
+  if (!recipientId) return; // 司機還沒加好友發過話，還抓不到收件者 ID，略過
 
   try {
     const res = await fetch('https://api.line.me/v2/bot/message/push', {
@@ -22,7 +24,7 @@ async function sendLineGroupMessage(text) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ to: groupId, messages: [{ type: 'text', text }] })
+      body: JSON.stringify({ to: recipientId, messages: [{ type: 'text', text }] })
     });
     if (!res.ok) {
       const body = await res.text().catch(() => '');
@@ -33,4 +35,4 @@ async function sendLineGroupMessage(text) {
   }
 }
 
-module.exports = { sendLineGroupMessage, getGroupId };
+module.exports = { sendLineMessage, getRecipientId };

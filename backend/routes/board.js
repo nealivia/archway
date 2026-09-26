@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { db } = require('../database');
 const { authenticateToken } = require('../middleware/auth');
-const { sendLineGroupMessage } = require('../utils/line');
+const { sendLineMessage } = require('../utils/line');
 
 // ── 佈告欄需要登入 ──────────────────────────────────────────────────
 // store（各分店）、driver（司機，只能切換配送狀態）、super_admin（超級管理員）能存取，一般管理員（admin）不可進入。
@@ -182,7 +182,7 @@ router.post('/deliveries', requireStore, (req, res) => {
   const lines = v.delivery_type === '分店調撥'
     ? [`🔄 新增分店調撥（${storeRow?.name || ''}上傳）`, `${v.transfer_from} → ${v.transfer_to}`, `時間：${fmtDeliveryTime(delivery_time)}`, v.transfer_item ? `貨物：${v.transfer_item}` : null]
     : [`🚚 新增配送單（${storeRow?.name || ''}）`, `時間：${fmtDeliveryTime(delivery_time)}`, `地點：${v.location}`, v.customer_name ? `客戶：${v.customer_name}` : null];
-  sendLineGroupMessage(lines.filter(Boolean).join('\n'));
+  sendLineMessage(lines.filter(Boolean).join('\n'));
 });
 
 // 今日配送總覽的司機路線手動排序：全公司只有一位司機，順序是跨分店共用的排程，

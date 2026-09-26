@@ -1,7 +1,8 @@
-// LINE Messaging API 的 webhook 接收端：唯一用途是「自動記錄 Bot 被拉進哪個群組」。
-// 把官方帳號的 Bot 加進目標 LINE 群組後，在群組裡發一則任意訊息，LINE 平台就會打這支 webhook，
-// 我們從事件裡的 groupId 存進 settings 表，之後 utils/line.js 推播訊息就會自動送到這個群組，
-// 不需要手動去外部工具查 group id 再貼進設定檔。
+// LINE Messaging API 的 webhook 接收端：唯一用途是「自動記錄要推播給誰」。
+// 司機把官方帳號加為好友後，在對話裡發一則任意訊息（一對一聊天，不是群組），
+// LINE 平台就會打這支 webhook，我們從事件裡的 userId 存進 settings 表，
+// 之後 utils/line.js 推播訊息就會自動一對一發給司機，不需要手動去外部工具查 ID 再貼進設定檔。
+// （如果之後想改回發到群組，把 Bot 加進群組、在群組裡發話也一樣會被記錄下來，會直接覆蓋成群組 ID。）
 const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
@@ -23,29 +24,31 @@ router.post('/webhook', (req, res) => {
 
   const events = req.body?.events || [];
   for (const event of events) {
-    if (event.source?.type !== 'group' || !event.source.groupId) continue;
-    const groupId = event.source.groupId;
+    const source = event.source || {};
+    const recipientId = source.type === 'user' ? source.userId : source.type === 'group' ? source.groupId : null;
+    if (!recipientId) continue;
+
     try {
       db.prepare(`
-        INSERT INTO settings (key, value) VALUES ('line_group_id', ?)
+        INSERT INTO settings (key, value) VALUES ('line_recipient_id', ?)
         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
-      `).run(groupId);
-      console.log(`✅ 已記錄 LINE 群組 ID：${groupId}（之後配送單通知會發到這個群組）`);
+      `).run(recipientId);
+      console.log(`✅ 已記錄 LINE 收件者 ID（${source.type === 'user' ? '一對一' : '群組'}）：${recipientId}`);
     } catch (e) {
-      console.error('❌ 記錄 LINE 群組 ID 失敗:', e.message);
+      console.error('❌ 記錄 LINE 收件者 ID 失敗:', e.message);
     }
 
     // 用 replyToken 回覆一次確認訊息（reply 不計入推播訊息額度，跟 push 分開算）
     const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
     if (event.replyToken && token) {
+      const confirmText = source.type === 'user'
+        ? '✅ 松上防水電子佈告欄已連接，之後新增配送單會一對一發訊息到這裡通知你。'
+        : '✅ 松上防水電子佈告欄已連接到這個群組，之後新增配送單會發訊息到這裡。';
       fetch('https://api.line.me/v2/bot/message/reply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({
-          replyToken: event.replyToken,
-          messages: [{ type: 'text', text: '✅ 松上防水電子佈告欄已連接到這個群組，之後新增配送單／配送狀態變更會發訊息到這裡。' }]
-        })
-      }).catch(() => { /* 回覆失敗不影響群組 ID 已經記錄成功 */ });
+        body: JSON.stringify({ replyToken: event.replyToken, messages: [{ type: 'text', text: confirmText }] })
+      }).catch(() => { /* 回覆失敗不影響收件者 ID 已經記錄成功 */ });
     }
   }
 });
