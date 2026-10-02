@@ -1298,6 +1298,8 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
     (acc[emp.store_id] = acc[emp.store_id] || []).push(emp)
     return acc
   }, {})
+  // 攤平成一個陣列，依分店排序，拿來當表格的欄（員工數通常不多，橫向塞得下，不用像日期那麼多欄）
+  const allEmployees = stores.flatMap(store => byStore[store.id] || [])
 
   return (
     <div>
@@ -1326,57 +1328,56 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
         </form>
       )}
 
+      {/* 直向排列：一列一天，一欄一位員工。全部員工一次塞進畫面寬度內，不用橫向拉，往下捲就能看完整個月 */}
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-x-auto">
-        <table className="text-xs border-collapse w-full">
+        <table className="text-xs border-collapse w-full table-fixed">
+          <colgroup>
+            <col style={{ width: '64px' }} />
+            {allEmployees.map(emp => <col key={emp.id} />)}
+          </colgroup>
           <thead>
             <tr>
-              <th className="sticky left-0 top-0 bg-white text-left px-3 py-2 border-b border-gray-100 min-w-[110px] z-20">員工</th>
-              {days.map(d => {
-                const k = dateKey(d)
-                const isWeekend = d.getDay() === 0 || d.getDay() === 6
-                const isHoliday = !!holidayNote[k]
-                const isToday = k === today
-                const isWeekStart = d.getDay() === 1 // 週一左邊加分隔線，方便用眼睛數週次
+              <th className="sticky left-0 top-0 bg-white text-left px-2 py-2 border-b border-gray-100 z-20">日期</th>
+              {allEmployees.map(emp => {
+                const canEdit = isSuperAdmin || String(emp.store_id) === String(storeId)
                 return (
-                  <th key={k} className={`sticky top-0 px-1 py-2 border-b border-gray-100 text-center font-normal min-w-[44px] z-10 ${isWeekStart ? 'border-l-2 border-l-gray-100' : ''} ${
-                    isToday ? 'bg-primary text-white font-bold rounded-t-lg' : isHoliday ? 'bg-amber-50 text-amber-600 font-medium' : isWeekend ? 'bg-gray-100 text-gray-500' : 'bg-white text-gray-500'
-                  }`} title={isHoliday ? `國定假日：${holidayNote[k]}` : undefined}>
-                    <div>{d.getDate()}{isHoliday && !isToday && '🎌'}</div>
-                    <div className={`text-[10px] ${isToday ? 'text-white/80' : ''}`}>{WEEKDAYS[d.getDay()]}</div>
+                  <th key={emp.id} className="sticky top-0 bg-white px-1 py-2 border-b border-gray-100 text-center font-normal z-10">
+                    <div className="flex items-center justify-center gap-1 truncate">
+                      <span className="inline-block w-1.5 h-1.5 rounded-full shrink-0" style={{ background: storeColor(emp.store_id) }} />
+                      <span className="truncate" title={`${emp.name}（${emp.store_name}）`}>{emp.name}</span>
+                      {canEdit && (
+                        <button onClick={() => removeEmployee(emp)} className="text-gray-300 hover:text-red-500 shrink-0" title="移除">×</button>
+                      )}
+                    </div>
                   </th>
                 )
               })}
             </tr>
           </thead>
           <tbody>
-            {Object.keys(byStore).length === 0 && (
-              <tr><td className="px-3 py-6 text-center text-gray-400" colSpan={days.length + 1}>還沒有員工資料，請先在上面新增</td></tr>
+            {allEmployees.length === 0 && (
+              <tr><td className="px-3 py-6 text-center text-gray-400" colSpan={1}>還沒有員工資料，請先在上面新增</td></tr>
             )}
-            {stores.map(store => (byStore[store.id] || []).map(emp => {
-              const canEdit = isSuperAdmin || String(emp.store_id) === String(storeId)
+            {allEmployees.length > 0 && days.map(d => {
+              const k = dateKey(d)
+              const isWeekend = d.getDay() === 0 || d.getDay() === 6
+              const isHoliday = !!holidayNote[k]
+              const isToday = k === today
+              const isWeekStart = d.getDay() === 1 // 週一上面加分隔線，方便用眼睛數週次
+              const rowBg = isToday ? 'bg-primary/5' : isHoliday ? 'bg-amber-50/50' : isWeekend ? 'bg-gray-50' : ''
               return (
-                <tr key={emp.id} className="hover:bg-gray-50/50">
-                  <td className="sticky left-0 z-10 bg-white px-3 py-1.5 border-b border-gray-50 whitespace-nowrap">
-                    <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5" style={{ background: storeColor(emp.store_id) }} />
-                    {emp.name}
-                    <span className="text-gray-300 text-[10px] ml-1">{store.name}</span>
-                    {canEdit && (
-                      <button onClick={() => removeEmployee(emp)} className="text-gray-300 hover:text-red-500 ml-1.5" title="移除">×</button>
-                    )}
+                <tr key={k} className={`${rowBg} ${isWeekStart ? 'border-t-2 border-t-gray-100' : ''}`}>
+                  <td className={`sticky left-0 z-10 px-2 py-1.5 border-b border-gray-50 whitespace-nowrap ${isToday ? 'bg-primary text-white font-bold rounded-r-lg' : isHoliday ? 'bg-amber-50 text-amber-600 font-medium' : isWeekend ? 'bg-gray-50 text-gray-500' : 'bg-white text-gray-500'}`}
+                    title={isHoliday ? `國定假日：${holidayNote[k]}` : undefined}>
+                    {viewMonth.getMonth() + 1}/{d.getDate()}（{WEEKDAYS[d.getDay()]}）{isHoliday && !isToday && '🎌'}
                   </td>
-                  {days.map(d => {
-                    const k = dateKey(d)
+                  {allEmployees.map(emp => {
+                    const canEdit = isSuperAdmin || String(emp.store_id) === String(storeId)
                     const entry = entries[`${emp.id}_${k}`]
                     const value = !entry ? '' : (entry.status === 'support' ? `support:${entry.support_store_id}` : entry.status)
-                    const isWeekend = d.getDay() === 0 || d.getDay() === 6
-                    const isHoliday = !!holidayNote[k]
-                    const isToday = k === today
-                    const isWeekStart = d.getDay() === 1
-                    const cellBg = isToday ? 'bg-primary/5' : isHoliday ? 'bg-amber-50/60' : isWeekend ? 'bg-gray-50' : ''
-                    const borderCls = `border-b border-gray-50 ${isWeekStart ? 'border-l-2 border-l-gray-100' : ''}`
                     if (!canEdit) {
                       return (
-                        <td key={k} className={`text-center px-1 py-1.5 ${borderCls} ${cellBg}`}>
+                        <td key={emp.id} className="text-center px-1 py-1.5 border-b border-gray-50">
                           {entry && (
                             <span className={`text-[10px] ${entry.status === 'sick' ? 'text-red-500' : entry.status === 'support' ? 'text-primary' : 'text-gray-400'}`}>
                               {entry.status === 'support' ? `支援${storeName(stores, entry.support_store_id).slice(0, 2)}` : SCHEDULE_STATUS_LABEL[entry.status]}
@@ -1386,7 +1387,7 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
                       )
                     }
                     return (
-                      <td key={k} className={`text-center px-0.5 py-1 ${borderCls} ${cellBg}`}>
+                      <td key={emp.id} className="text-center px-0.5 py-1 border-b border-gray-50">
                         <select value={value} onChange={e => setCell(emp, k, e.target.value)}
                           className={`text-[10px] border-0 bg-transparent rounded-md text-center w-full py-0.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30 ${
                             entry?.status === 'sick' ? 'text-red-500 font-medium' : entry?.status === 'support' ? 'text-primary font-medium' : entry?.status === 'off' ? 'text-gray-400' : 'text-gray-300'
@@ -1403,7 +1404,7 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
                   })}
                 </tr>
               )
-            }))}
+            })}
           </tbody>
         </table>
       </div>
