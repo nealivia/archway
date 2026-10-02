@@ -246,6 +246,30 @@ function initDatabase() {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    -- 員工排班表：每個員工隸屬一間「原分店」，但月休表是全公司共用檢視，任何分店都能看到彼此的員工，
+    -- 排某天「支援XX店」時，等於直接把這個員工當天的工作地點改掉，其他分店自然就看得到有人來支援。
+    CREATE TABLE IF NOT EXISTS board_employees (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      store_id INTEGER NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    -- 每位員工每天最多一筆紀錄（UNIQUE）。沒有紀錄 = 當天正常在原分店上班（預設值，不用每天都填）。
+    -- status='off'(休假) / 'sick'(病假) / 'support'(支援其他分店，support_store_id 存要去支援的分店)
+    CREATE TABLE IF NOT EXISTS board_schedule (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_id INTEGER NOT NULL REFERENCES board_employees(id) ON DELETE CASCADE,
+      date TEXT NOT NULL,
+      status TEXT NOT NULL CHECK(status IN ('off', 'sick', 'support')),
+      support_store_id INTEGER REFERENCES stores(id) ON DELETE SET NULL,
+      note TEXT NOT NULL DEFAULT '',
+      created_by TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(employee_id, date)
+    );
+
     -- 佈告欄常用查詢欄位加索引（依分店篩選、依日期排序/區間查詢、清理舊紀錄）
     CREATE INDEX IF NOT EXISTS idx_board_deliveries_time ON board_deliveries(delivery_time);
     CREATE INDEX IF NOT EXISTS idx_board_deliveries_store ON board_deliveries(store_id);
@@ -255,6 +279,9 @@ function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_board_comments_store ON board_comments(store_id);
     CREATE INDEX IF NOT EXISTS idx_board_status_log_created ON board_status_log(created_at);
     CREATE INDEX IF NOT EXISTS idx_board_status_log_store ON board_status_log(store_id);
+    CREATE INDEX IF NOT EXISTS idx_board_employees_store ON board_employees(store_id);
+    CREATE INDEX IF NOT EXISTS idx_board_schedule_date ON board_schedule(date);
+    CREATE INDEX IF NOT EXISTS idx_board_schedule_employee ON board_schedule(employee_id);
   `);
 
   // 佈告欄上傳者紀錄：舊版本的表沒有 created_by 欄位，補上去（新建立的表已經包含在上面的 CREATE TABLE 裡，這裡會直接因為欄位已存在而失敗，屬正常情況）

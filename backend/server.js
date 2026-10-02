@@ -99,6 +99,7 @@ app.use('/api/stores', require('./routes/stores'));
 app.use('/api/faqs', require('./routes/faqs'));
 app.use('/api/board', require('./routes/board'));
 app.use('/api/holidays', require('./routes/holidays'));
+app.use('/api/schedule', require('./routes/schedule'));
 
 // 健康檢查
 app.get('/api/health', (req, res) => {

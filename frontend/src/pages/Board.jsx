@@ -8,6 +8,7 @@ const NOTIFY_KEY = 'board_notify_enabled'
 const TABS = [
   { key: 'today', label: '🚚 今日配送總覽' },
   { key: 'deliveries', label: '📅 配送單管理' },
+  { key: 'schedule', label: '📆 排班表' },
   { key: 'stock', label: '📦 缺訂貨狀態' },
   { key: 'comments', label: '💬 留言板' },
   { key: 'history', label: '🕘 歷史紀錄查詢' }
@@ -235,7 +236,7 @@ export default function Board() {
         : (stores.find(s => String(s.id) === String(storeId))?.name || '')
 
   const visibleTabs = isDriver
-    ? TABS.filter(t => t.key !== 'stock' && t.key !== 'comments')
+    ? TABS.filter(t => t.key !== 'stock' && t.key !== 'comments' && t.key !== 'schedule')
     : (isRealSuperAdmin && !previewing ? [...TABS, { key: 'holidays', label: '⚙️ 假日設定' }] : TABS)
 
   if (!isStoreAccount && !isRealDriver && !previewing && !storeId) {
@@ -337,6 +338,7 @@ export default function Board() {
 
       {activeTab === 'today' && <TodayOverviewTab stores={stores} storeId={storeId} canChangeStatus={canChangeDeliveryStatus} />}
       {activeTab === 'deliveries' && <DeliveriesTab storeId={storeId} stores={stores} canChangeStatus={canChangeDeliveryStatus} isSuperAdmin={isSuperAdminPowers} />}
+      {activeTab === 'schedule' && <ScheduleTab storeId={storeId} stores={stores} isSuperAdmin={isSuperAdminPowers} />}
       {activeTab === 'stock' && <StockTab storeId={storeId} stores={stores} />}
       {activeTab === 'comments' && <CommentsTab storeId={storeId} />}
       {activeTab === 'history' && <HistoryTab stores={stores} />}
@@ -1201,6 +1203,191 @@ function CommentsTab({ storeId }) {
             )}
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+// ================= 排班表（月休表）：各分店排自己員工的休假/病假/支援其他分店，全公司共用同一份檢視 =================
+const SCHEDULE_STATUS_LABEL = { off: '休', sick: '病假' }
+function monthKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+function daysOfMonth(viewMonth) {
+  const last = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0).getDate()
+  return Array.from({ length: last }, (_, i) => new Date(viewMonth.getFullYear(), viewMonth.getMonth(), i + 1))
+}
+
+function ScheduleTab({ storeId, stores, isSuperAdmin }) {
+  const [viewMonth, setViewMonth] = useState(() => { const d = new Date(); d.setDate(1); return d })
+  const [employees, setEmployees] = useState([])
+  const [entries, setEntries] = useState({}) // key: `${employeeId}_${date}` -> { status, support_store_id, note }
+  const [newName, setNewName] = useState('')
+  const [adding, setAdding] = useState(false)
+
+  const load = useCallback(() => {
+    const month = monthKey(viewMonth)
+    Promise.all([
+      api.get('/schedule/employees'),
+      api.get('/schedule/entries', { params: { month } })
+    ]).then(([e, s]) => {
+      setEmployees(e.data || [])
+      const map = {}
+      for (const row of (s.data || [])) map[`${row.employee_id}_${row.date}`] = row
+      setEntries(map)
+    }).catch(() => toast.error('排班表載入失敗'))
+  }, [viewMonth])
+
+  usePollingRefresh(load, 20000)
+
+  const days = daysOfMonth(viewMonth)
+  const monthLabel = `${viewMonth.getFullYear()} 年 ${viewMonth.getMonth() + 1} 月`
+  const today = dateKey(new Date())
+
+  const addEmployee = async (e) => {
+    e.preventDefault()
+    if (!newName.trim()) return toast.error('請輸入員工姓名')
+    if (!storeId) return toast.error('請先選擇分店')
+    setAdding(true)
+    try {
+      await api.post('/schedule/employees', { name: newName.trim() }, withStore(storeId))
+      setNewName('')
+      toast.success('已新增員工')
+      load()
+    } catch (err) { toast.error(err.message || '新增失敗') }
+    finally { setAdding(false) }
+  }
+
+  const removeEmployee = async (emp) => {
+    if (!confirm(`確定要將「${emp.name}」從排班表移除嗎？（過去的排班紀錄仍會保留）`)) return
+    try {
+      await api.delete(`/schedule/employees/${emp.id}`, withStore(storeId))
+      toast.success('已移除')
+      load()
+    } catch (err) { toast.error(err.message || '移除失敗') }
+  }
+
+  const setCell = async (emp, dateStr, value) => {
+    // value: '' | 'off' | 'sick' | `support:{storeId}`
+    const key = `${emp.id}_${dateStr}`
+    let status = null, support_store_id = null
+    if (value === 'off' || value === 'sick') status = value
+    else if (value.startsWith('support:')) { status = 'support'; support_store_id = Number(value.slice(8)) }
+
+    const prev = entries[key]
+    setEntries(e => {
+      const next = { ...e }
+      if (status) next[key] = { employee_id: emp.id, date: dateStr, status, support_store_id, note: '' }
+      else delete next[key]
+      return next
+    })
+    try {
+      await api.put('/schedule/entries', { employee_id: emp.id, date: dateStr, status, support_store_id }, withStore(storeId))
+    } catch (err) {
+      toast.error(err.message || '更新失敗，重新整理後可能會還原')
+      setEntries(e => ({ ...e, [key]: prev }))
+    }
+  }
+
+  const byStore = employees.reduce((acc, emp) => {
+    (acc[emp.store_id] = acc[emp.store_id] || []).push(emp)
+    return acc
+  }, {})
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <button onClick={() => setViewMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
+            className="text-gray-400 hover:text-dark text-lg px-2 py-1">‹</button>
+          <span className="text-sm font-semibold text-dark min-w-[110px] text-center">{monthLabel}</span>
+          <button onClick={() => setViewMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
+            className="text-gray-400 hover:text-dark text-lg px-2 py-1">›</button>
+        </div>
+        <span className="text-xs text-gray-400">月度排休，沒標記＝正常上班・點格子可以排休假/病假/支援其他分店</span>
+      </div>
+
+      {storeId && (
+        <form onSubmit={addEmployee} className="flex flex-wrap items-end gap-2 mb-4 bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
+          <div className="flex-1 min-w-[140px]">
+            <label className="block text-xs text-gray-500 mb-1">新增員工到目前代操分店</label>
+            <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="例如：王小明"
+              className="w-full border border-gray-200 px-3 py-2 text-sm rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150" />
+          </div>
+          <button disabled={adding} className="btn-primary text-sm py-2 px-5 disabled:opacity-60">新增</button>
+        </form>
+      )}
+
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-x-auto">
+        <table className="text-xs border-collapse w-full">
+          <thead>
+            <tr>
+              <th className="sticky left-0 bg-white text-left px-3 py-2 border-b border-gray-100 min-w-[110px] z-10">員工</th>
+              {days.map(d => {
+                const k = dateKey(d)
+                const isWeekend = d.getDay() === 0 || d.getDay() === 6
+                return (
+                  <th key={k} className={`px-1 py-2 border-b border-gray-100 text-center font-normal min-w-[40px] ${isWeekend ? 'bg-gray-50 text-gray-400' : 'text-gray-500'} ${k === today ? 'text-primary font-bold' : ''}`}>
+                    <div>{d.getDate()}</div>
+                    <div className="text-[9px]">{WEEKDAYS[d.getDay()]}</div>
+                  </th>
+                )
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {Object.keys(byStore).length === 0 && (
+              <tr><td className="px-3 py-6 text-center text-gray-400" colSpan={days.length + 1}>還沒有員工資料，請先在上面新增</td></tr>
+            )}
+            {stores.map(store => (byStore[store.id] || []).map(emp => {
+              const canEdit = isSuperAdmin || String(emp.store_id) === String(storeId)
+              return (
+                <tr key={emp.id} className="hover:bg-gray-50/50">
+                  <td className="sticky left-0 bg-white px-3 py-1.5 border-b border-gray-50 whitespace-nowrap">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5" style={{ background: storeColor(emp.store_id) }} />
+                    {emp.name}
+                    <span className="text-gray-300 text-[10px] ml-1">{store.name}</span>
+                    {canEdit && (
+                      <button onClick={() => removeEmployee(emp)} className="text-gray-300 hover:text-red-500 ml-1.5" title="移除">×</button>
+                    )}
+                  </td>
+                  {days.map(d => {
+                    const k = dateKey(d)
+                    const entry = entries[`${emp.id}_${k}`]
+                    const value = !entry ? '' : (entry.status === 'support' ? `support:${entry.support_store_id}` : entry.status)
+                    const isWeekend = d.getDay() === 0 || d.getDay() === 6
+                    if (!canEdit) {
+                      return (
+                        <td key={k} className={`text-center px-1 py-1.5 border-b border-gray-50 ${isWeekend ? 'bg-gray-50' : ''}`}>
+                          {entry && (
+                            <span className={`text-[10px] ${entry.status === 'sick' ? 'text-red-500' : entry.status === 'support' ? 'text-primary' : 'text-gray-400'}`}>
+                              {entry.status === 'support' ? `支援${storeName(stores, entry.support_store_id).slice(0, 2)}` : SCHEDULE_STATUS_LABEL[entry.status]}
+                            </span>
+                          )}
+                        </td>
+                      )
+                    }
+                    return (
+                      <td key={k} className={`text-center px-0.5 py-1 border-b border-gray-50 ${isWeekend ? 'bg-gray-50' : ''}`}>
+                        <select value={value} onChange={e => setCell(emp, k, e.target.value)}
+                          className={`text-[10px] border-0 bg-transparent rounded-md text-center w-full py-0.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                            entry?.status === 'sick' ? 'text-red-500 font-medium' : entry?.status === 'support' ? 'text-primary font-medium' : entry?.status === 'off' ? 'text-gray-400' : 'text-gray-300'
+                          }`}>
+                          <option value="">—</option>
+                          <option value="off">休假</option>
+                          <option value="sick">病假</option>
+                          {stores.filter(s => s.id !== emp.store_id).map(s => (
+                            <option key={s.id} value={`support:${s.id}`}>支援{s.name}</option>
+                          ))}
+                        </select>
+                      </td>
+                    )
+                  })}
+                </tr>
+              )
+            }))}
+          </tbody>
+        </table>
       </div>
     </div>
   )
