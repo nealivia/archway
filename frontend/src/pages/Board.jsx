@@ -1334,9 +1334,10 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
       )}
 
       {/* 分三家店各自一張表，比較清楚哪家店的班是誰排的；最後多一欄「外援」，
-          顯示別分店今天派誰來支援這家店（那是對方在自己的表排的，這裡唯讀顯示讓大家知道） */}
+          顯示別分店今天派誰來支援這家店（那是對方在自己的表排的，這裡唯讀顯示讓大家知道）。
+          分店帳號只看得到自己分店的表（不用看別人家的排休），只有超級管理員能看到全部分店。 */}
       <div className="space-y-5">
-        {stores.map(store => {
+        {(isSuperAdmin ? stores : stores.filter(s => String(s.id) === String(storeId))).map(store => {
           const ownEmployees = byStore[store.id] || []
           const canEditStore = isSuperAdmin || String(store.id) === String(storeId)
           return (
