@@ -1217,6 +1217,13 @@ function daysOfMonth(viewMonth) {
   const last = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0).getDate()
   return Array.from({ length: last }, (_, i) => new Date(viewMonth.getFullYear(), viewMonth.getMonth(), i + 1))
 }
+// 各分店公休日（週次，0=日...6=六）：板橋/樹林週一至週五營業，六日本來就不上班，排班表直接不顯示那兩天；
+// 和平店週一至週六營業，只有週日公休。沒列進來的分店（以後新增的）預設不隱藏任何一天。
+function storeClosedWeekdays(storeName) {
+  if (storeName === '板橋店' || storeName === '樹林 Sika 展示店') return [0, 6]
+  if (storeName === '和平店') return [0]
+  return []
+}
 
 function ScheduleTab({ storeId, stores, isSuperAdmin }) {
   const [viewMonth, setViewMonth] = useState(() => { const d = new Date(); d.setDate(1); return d })
@@ -1340,6 +1347,8 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
         {(isSuperAdmin ? stores : stores.filter(s => String(s.id) === String(storeId))).map(store => {
           const ownEmployees = byStore[store.id] || []
           const canEditStore = isSuperAdmin || String(store.id) === String(storeId)
+          const closedWeekdays = storeClosedWeekdays(store.name)
+          const storeDays = days.filter(d => !closedWeekdays.includes(d.getDay()))
           return (
             <div key={store.id} className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-x-auto">
               <div className="flex items-center gap-2 px-4 pt-3 pb-1">
@@ -1371,7 +1380,7 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {days.map(d => {
+                  {storeDays.map(d => {
                     const k = dateKey(d)
                     const isWeekend = d.getDay() === 0 || d.getDay() === 6
                     const isHoliday = !!holidayNote[k]
