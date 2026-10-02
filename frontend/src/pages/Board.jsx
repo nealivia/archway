@@ -1224,6 +1224,10 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
   const [entries, setEntries] = useState({}) // key: `${employeeId}_${date}` -> { status, support_store_id, note }
   const [newName, setNewName] = useState('')
   const [adding, setAdding] = useState(false)
+  // 國定假日：跟配送單月曆用同一份設定，只是用來輔助標示月份中的假日欄位，排班邏輯跟假日無關
+  const [holidays, setHolidays] = useState([])
+  useEffect(() => { api.get('/holidays').then(r => setHolidays(r.data || [])).catch(() => {}) }, [])
+  const holidayNote = holidays.reduce((acc, h) => { acc[h.date] = h.note; return acc }, {})
 
   const load = useCallback(() => {
     const month = monthKey(viewMonth)
@@ -1243,6 +1247,7 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
   const days = daysOfMonth(viewMonth)
   const monthLabel = `${viewMonth.getFullYear()} 年 ${viewMonth.getMonth() + 1} 月`
   const today = dateKey(new Date())
+  const isCurrentMonth = monthKey(viewMonth) === monthKey(new Date())
 
   const addEmployee = async (e) => {
     e.preventDefault()
@@ -1303,8 +1308,11 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
           <span className="text-sm font-semibold text-dark min-w-[110px] text-center">{monthLabel}</span>
           <button onClick={() => setViewMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
             className="text-gray-400 hover:text-dark text-lg px-2 py-1">›</button>
+          {!isCurrentMonth && (
+            <button onClick={() => { const d = new Date(); d.setDate(1); setViewMonth(d) }} className="text-xs text-primary underline py-1 px-0.5">回本月</button>
+          )}
         </div>
-        <span className="text-xs text-gray-400">月度排休，沒標記＝正常上班・點格子可以排休假/病假/支援其他分店</span>
+        <span className="text-xs text-gray-400">沒標記＝正常上班・點格子排休假/病假/支援其他分店・今天跟假日會特別標色</span>
       </div>
 
       {storeId && (
@@ -1322,14 +1330,19 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
         <table className="text-xs border-collapse w-full">
           <thead>
             <tr>
-              <th className="sticky left-0 bg-white text-left px-3 py-2 border-b border-gray-100 min-w-[110px] z-10">員工</th>
+              <th className="sticky left-0 top-0 bg-white text-left px-3 py-2 border-b border-gray-100 min-w-[110px] z-20">員工</th>
               {days.map(d => {
                 const k = dateKey(d)
                 const isWeekend = d.getDay() === 0 || d.getDay() === 6
+                const isHoliday = !!holidayNote[k]
+                const isToday = k === today
+                const isWeekStart = d.getDay() === 1 // 週一左邊加分隔線，方便用眼睛數週次
                 return (
-                  <th key={k} className={`px-1 py-2 border-b border-gray-100 text-center font-normal min-w-[40px] ${isWeekend ? 'bg-gray-50 text-gray-400' : 'text-gray-500'} ${k === today ? 'text-primary font-bold' : ''}`}>
-                    <div>{d.getDate()}</div>
-                    <div className="text-[9px]">{WEEKDAYS[d.getDay()]}</div>
+                  <th key={k} className={`sticky top-0 px-1 py-2 border-b border-gray-100 text-center font-normal min-w-[44px] z-10 ${isWeekStart ? 'border-l-2 border-l-gray-100' : ''} ${
+                    isToday ? 'bg-primary text-white font-bold rounded-t-lg' : isHoliday ? 'bg-amber-50 text-amber-600 font-medium' : isWeekend ? 'bg-gray-100 text-gray-500' : 'bg-white text-gray-500'
+                  }`} title={isHoliday ? `國定假日：${holidayNote[k]}` : undefined}>
+                    <div>{d.getDate()}{isHoliday && !isToday && '🎌'}</div>
+                    <div className={`text-[10px] ${isToday ? 'text-white/80' : ''}`}>{WEEKDAYS[d.getDay()]}</div>
                   </th>
                 )
               })}
@@ -1343,7 +1356,7 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
               const canEdit = isSuperAdmin || String(emp.store_id) === String(storeId)
               return (
                 <tr key={emp.id} className="hover:bg-gray-50/50">
-                  <td className="sticky left-0 bg-white px-3 py-1.5 border-b border-gray-50 whitespace-nowrap">
+                  <td className="sticky left-0 z-10 bg-white px-3 py-1.5 border-b border-gray-50 whitespace-nowrap">
                     <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5" style={{ background: storeColor(emp.store_id) }} />
                     {emp.name}
                     <span className="text-gray-300 text-[10px] ml-1">{store.name}</span>
@@ -1356,9 +1369,14 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
                     const entry = entries[`${emp.id}_${k}`]
                     const value = !entry ? '' : (entry.status === 'support' ? `support:${entry.support_store_id}` : entry.status)
                     const isWeekend = d.getDay() === 0 || d.getDay() === 6
+                    const isHoliday = !!holidayNote[k]
+                    const isToday = k === today
+                    const isWeekStart = d.getDay() === 1
+                    const cellBg = isToday ? 'bg-primary/5' : isHoliday ? 'bg-amber-50/60' : isWeekend ? 'bg-gray-50' : ''
+                    const borderCls = `border-b border-gray-50 ${isWeekStart ? 'border-l-2 border-l-gray-100' : ''}`
                     if (!canEdit) {
                       return (
-                        <td key={k} className={`text-center px-1 py-1.5 border-b border-gray-50 ${isWeekend ? 'bg-gray-50' : ''}`}>
+                        <td key={k} className={`text-center px-1 py-1.5 ${borderCls} ${cellBg}`}>
                           {entry && (
                             <span className={`text-[10px] ${entry.status === 'sick' ? 'text-red-500' : entry.status === 'support' ? 'text-primary' : 'text-gray-400'}`}>
                               {entry.status === 'support' ? `支援${storeName(stores, entry.support_store_id).slice(0, 2)}` : SCHEDULE_STATUS_LABEL[entry.status]}
@@ -1368,7 +1386,7 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
                       )
                     }
                     return (
-                      <td key={k} className={`text-center px-0.5 py-1 border-b border-gray-50 ${isWeekend ? 'bg-gray-50' : ''}`}>
+                      <td key={k} className={`text-center px-0.5 py-1 ${borderCls} ${cellBg}`}>
                         <select value={value} onChange={e => setCell(emp, k, e.target.value)}
                           className={`text-[10px] border-0 bg-transparent rounded-md text-center w-full py-0.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30 ${
                             entry?.status === 'sick' ? 'text-red-500 font-medium' : entry?.status === 'support' ? 'text-primary font-medium' : entry?.status === 'off' ? 'text-gray-400' : 'text-gray-300'
