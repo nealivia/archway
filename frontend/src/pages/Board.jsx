@@ -1298,8 +1298,13 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
     (acc[emp.store_id] = acc[emp.store_id] || []).push(emp)
     return acc
   }, {})
-  // 攤平成一個陣列，依分店排序，拿來當表格的欄（員工數通常不多，橫向塞得下，不用像日期那麼多欄）
+  // 攤平成一個陣列，依分店排序，拿來查「某天誰來支援某分店」用（員工數通常不多，不用擔心效能）
   const allEmployees = stores.flatMap(store => byStore[store.id] || [])
+  // 某分店某天收到哪些外援（別分店的員工，當天狀態排成「支援到這家店」）
+  const supportersFor = (targetStoreId, k) => allEmployees
+    .filter(e => e.store_id !== targetStoreId)
+    .map(e => ({ emp: e, entry: entries[`${e.id}_${k}`] }))
+    .filter(x => x.entry && x.entry.status === 'support' && String(x.entry.support_store_id) === String(targetStoreId))
 
   return (
     <div>
@@ -1328,92 +1333,113 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
         </form>
       )}
 
-      {/* 直向排列：一列一天，一欄一位員工。全部員工一次塞進畫面寬度內，不用橫向拉，往下捲就能看完整個月 */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-x-auto">
-        <table className="text-xs border-collapse w-full table-fixed">
-          <colgroup>
-            <col style={{ width: '64px' }} />
-            {allEmployees.map(emp => <col key={emp.id} />)}
-          </colgroup>
-          <thead>
-            <tr>
-              <th className="sticky left-0 top-0 bg-white text-left px-2 py-2 border-b border-gray-100 z-20">日期</th>
-              {allEmployees.map(emp => {
-                const canEdit = isSuperAdmin || String(emp.store_id) === String(storeId)
-                return (
-                  <th key={emp.id} className="sticky top-0 bg-white px-1 py-2 border-b border-gray-100 text-center font-normal z-10">
-                    <div className="flex items-center justify-center gap-1 truncate">
-                      <span className="inline-block w-1.5 h-1.5 rounded-full shrink-0" style={{ background: storeColor(emp.store_id) }} />
-                      <span className="truncate" title={`${emp.name}（${emp.store_name}）`}>{emp.name}</span>
-                      {canEdit && (
-                        <button onClick={() => removeEmployee(emp)} className="text-gray-300 hover:text-red-500 shrink-0" title="移除">×</button>
-                      )}
-                    </div>
-                  </th>
-                )
-              })}
-            </tr>
-          </thead>
-          <tbody>
-            {allEmployees.length === 0 && (
-              <tr><td className="px-3 py-6 text-center text-gray-400" colSpan={1}>還沒有員工資料，請先在上面新增</td></tr>
-            )}
-            {allEmployees.length > 0 && days.map(d => {
-              const k = dateKey(d)
-              const isWeekend = d.getDay() === 0 || d.getDay() === 6
-              const isHoliday = !!holidayNote[k]
-              const isToday = k === today
-              const isWeekStart = d.getDay() === 1 // 週一上面加分隔線，方便用眼睛數週次
-              const rowBg = isToday ? 'bg-primary/5' : isHoliday ? 'bg-amber-50/50' : isWeekend ? 'bg-gray-50' : ''
-              return (
-                <tr key={k} className={`${rowBg} ${isWeekStart ? 'border-t-2 border-t-gray-100' : ''}`}>
-                  <td className={`sticky left-0 z-10 px-2 py-1.5 border-b border-gray-50 whitespace-nowrap ${isToday ? 'bg-primary text-white font-bold rounded-r-lg' : isHoliday ? 'bg-amber-50 text-amber-600 font-medium' : isWeekend ? 'bg-gray-50 text-gray-500' : 'bg-white text-gray-500'}`}
-                    title={isHoliday ? `國定假日：${holidayNote[k]}` : undefined}>
-                    {viewMonth.getMonth() + 1}/{d.getDate()}（{WEEKDAYS[d.getDay()]}）{isHoliday && !isToday && '🎌'}
-                  </td>
-                  {allEmployees.map(emp => {
-                    const canEdit = isSuperAdmin || String(emp.store_id) === String(storeId)
-                    const entry = entries[`${emp.id}_${k}`]
-                    const value = !entry ? '' : (entry.status === 'support' ? `support:${entry.support_store_id}` : entry.status)
-                    if (!canEdit) {
-                      return (
-                        <td key={emp.id} className="text-center px-1 py-1 border-b border-gray-50">
-                          {entry && (
-                            <span className={`inline-block text-[11px] font-medium px-1.5 py-0.5 rounded-lg ${
-                              entry.status === 'sick' ? 'bg-red-50 text-red-600' : entry.status === 'support' ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-500'
-                            }`}>
-                              {entry.status === 'support' ? `支援${storeName(stores, entry.support_store_id).slice(0, 2)}` : SCHEDULE_STATUS_LABEL[entry.status]}
-                            </span>
+      {/* 分三家店各自一張表，比較清楚哪家店的班是誰排的；最後多一欄「外援」，
+          顯示別分店今天派誰來支援這家店（那是對方在自己的表排的，這裡唯讀顯示讓大家知道） */}
+      <div className="space-y-5">
+        {stores.map(store => {
+          const ownEmployees = byStore[store.id] || []
+          const canEditStore = isSuperAdmin || String(store.id) === String(storeId)
+          return (
+            <div key={store.id} className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-x-auto">
+              <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+                <span className="inline-block w-2 h-2 rounded-full" style={{ background: storeColor(store.id) }} />
+                <span className="text-sm font-semibold text-dark">{store.name}</span>
+                {!canEditStore && <span className="text-[10px] text-gray-300">（唯讀）</span>}
+                {ownEmployees.length === 0 && <span className="text-[10px] text-gray-300">・尚無員工</span>}
+              </div>
+              <table className="text-xs border-collapse w-full table-fixed">
+                <colgroup>
+                  <col style={{ width: '90px' }} />
+                  {ownEmployees.map(emp => <col key={emp.id} />)}
+                  <col style={{ width: '110px' }} />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th className="sticky left-0 top-0 bg-white text-left px-2 py-2 border-b border-gray-100 z-20">日期</th>
+                    {ownEmployees.map(emp => (
+                      <th key={emp.id} className="sticky top-0 bg-white px-1 py-2 border-b border-gray-100 text-center font-normal z-10">
+                        <div className="flex items-center justify-center gap-1 truncate">
+                          <span className="truncate" title={emp.name}>{emp.name}</span>
+                          {canEditStore && (
+                            <button onClick={() => removeEmployee(emp)} className="text-gray-300 hover:text-red-500 shrink-0" title="移除">×</button>
+                          )}
+                        </div>
+                      </th>
+                    ))}
+                    <th className="sticky top-0 bg-white px-2 py-2 border-b border-gray-100 text-center font-normal text-gray-400 z-10">外援</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {days.map(d => {
+                    const k = dateKey(d)
+                    const isWeekend = d.getDay() === 0 || d.getDay() === 6
+                    const isHoliday = !!holidayNote[k]
+                    const isToday = k === today
+                    const isWeekStart = d.getDay() === 1
+                    const rowBg = isToday ? 'bg-primary/5' : isHoliday ? 'bg-amber-50/50' : isWeekend ? 'bg-gray-50' : ''
+                    const supporters = supportersFor(store.id, k)
+                    return (
+                      <tr key={k} className={`${rowBg} ${isWeekStart ? 'border-t-2 border-t-gray-100' : ''}`}>
+                        <td className={`sticky left-0 z-10 px-2 py-1.5 border-b border-gray-50 whitespace-nowrap ${isToday ? 'bg-primary text-white font-bold rounded-r-lg' : isHoliday ? 'bg-amber-50 text-amber-600 font-medium' : isWeekend ? 'bg-gray-50 text-gray-500' : 'bg-white text-gray-500'}`}
+                          title={isHoliday ? `國定假日：${holidayNote[k]}` : undefined}>
+                          {viewMonth.getMonth() + 1}/{d.getDate()}（{WEEKDAYS[d.getDay()]}）{isHoliday && !isToday && '🎌'}
+                        </td>
+                        {ownEmployees.map(emp => {
+                          const entry = entries[`${emp.id}_${k}`]
+                          const value = !entry ? '' : (entry.status === 'support' ? `support:${entry.support_store_id}` : entry.status)
+                          if (!canEditStore) {
+                            return (
+                              <td key={emp.id} className="text-center px-1 py-1 border-b border-gray-50">
+                                {entry && (
+                                  <span className={`inline-block text-[11px] font-medium px-1.5 py-0.5 rounded-lg ${
+                                    entry.status === 'sick' ? 'bg-red-50 text-red-600' : entry.status === 'support' ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-500'
+                                  }`}>
+                                    {entry.status === 'support' ? `支援${storeName(stores, entry.support_store_id).slice(0, 2)}` : SCHEDULE_STATUS_LABEL[entry.status]}
+                                  </span>
+                                )}
+                              </td>
+                            )
+                          }
+                          return (
+                            <td key={emp.id} className="text-center px-1 py-1 border-b border-gray-50">
+                              {/* 空白=正常上班時故意把文字設透明，格子看起來是乾淨空白的，不會滿版都是「— ⌄」很雜；
+                                  有排班的格子才顯示淺色底的彩色文字，一眼就能抓到哪幾格被排了什麼 */}
+                              <select value={value} onChange={e => setCell(emp, k, e.target.value)}
+                                className={`appearance-none border-0 text-[11px] text-center w-full py-1 rounded-lg cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                                  entry?.status === 'sick' ? 'bg-red-50 text-red-600 font-medium'
+                                  : entry?.status === 'support' ? 'bg-primary/10 text-primary font-medium'
+                                  : entry?.status === 'off' ? 'bg-gray-100 text-gray-500 font-medium'
+                                  : 'bg-transparent text-transparent hover:bg-gray-100'
+                                }`}>
+                                <option value="" className="text-dark">正常上班</option>
+                                <option value="off" className="text-dark">休假</option>
+                                <option value="sick" className="text-dark">病假</option>
+                                {stores.filter(s => s.id !== emp.store_id).map(s => (
+                                  <option key={s.id} value={`support:${s.id}`} className="text-dark">支援{s.name}</option>
+                                ))}
+                              </select>
+                            </td>
+                          )
+                        })}
+                        <td className="text-center px-1 py-1 border-b border-gray-50">
+                          {supporters.length > 0 && (
+                            <div className="flex flex-wrap items-center justify-center gap-1">
+                              {supporters.map(({ emp }) => (
+                                <span key={emp.id} className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-lg bg-teal-50 text-teal-700" title={`來自${emp.store_name}`}>
+                                  🤝 {emp.name}
+                                </span>
+                              ))}
+                            </div>
                           )}
                         </td>
-                      )
-                    }
-                    return (
-                      <td key={emp.id} className="text-center px-1 py-1 border-b border-gray-50">
-                        {/* 空白=正常上班時故意把文字設透明，格子看起來是乾淨空白的，不會滿版都是「— ⌄」很雜；
-                            有排班的格子才顯示淺色底的彩色文字，一眼就能抓到哪幾格被排了什麼 */}
-                        <select value={value} onChange={e => setCell(emp, k, e.target.value)}
-                          className={`appearance-none border-0 text-[11px] text-center w-full py-1 rounded-lg cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-                            entry?.status === 'sick' ? 'bg-red-50 text-red-600 font-medium'
-                            : entry?.status === 'support' ? 'bg-primary/10 text-primary font-medium'
-                            : entry?.status === 'off' ? 'bg-gray-100 text-gray-500 font-medium'
-                            : 'bg-transparent text-transparent hover:bg-gray-100'
-                          }`}>
-                          <option value="" className="text-dark">正常上班</option>
-                          <option value="off" className="text-dark">休假</option>
-                          <option value="sick" className="text-dark">病假</option>
-                          {stores.filter(s => s.id !== emp.store_id).map(s => (
-                            <option key={s.id} value={`support:${s.id}`} className="text-dark">支援{s.name}</option>
-                          ))}
-                        </select>
-                      </td>
+                      </tr>
                     )
                   })}
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+                </tbody>
+              </table>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
