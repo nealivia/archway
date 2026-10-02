@@ -1377,9 +1377,11 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
                     const value = !entry ? '' : (entry.status === 'support' ? `support:${entry.support_store_id}` : entry.status)
                     if (!canEdit) {
                       return (
-                        <td key={emp.id} className="text-center px-1 py-1.5 border-b border-gray-50">
+                        <td key={emp.id} className="text-center px-1 py-1 border-b border-gray-50">
                           {entry && (
-                            <span className={`text-[10px] ${entry.status === 'sick' ? 'text-red-500' : entry.status === 'support' ? 'text-primary' : 'text-gray-400'}`}>
+                            <span className={`inline-block text-[11px] font-medium px-1.5 py-0.5 rounded-lg ${
+                              entry.status === 'sick' ? 'bg-red-50 text-red-600' : entry.status === 'support' ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-500'
+                            }`}>
                               {entry.status === 'support' ? `支援${storeName(stores, entry.support_store_id).slice(0, 2)}` : SCHEDULE_STATUS_LABEL[entry.status]}
                             </span>
                           )}
@@ -1387,16 +1389,21 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
                       )
                     }
                     return (
-                      <td key={emp.id} className="text-center px-0.5 py-1 border-b border-gray-50">
+                      <td key={emp.id} className="text-center px-1 py-1 border-b border-gray-50">
+                        {/* 空白=正常上班時故意把文字設透明，格子看起來是乾淨空白的，不會滿版都是「— ⌄」很雜；
+                            有排班的格子才顯示淺色底的彩色文字，一眼就能抓到哪幾格被排了什麼 */}
                         <select value={value} onChange={e => setCell(emp, k, e.target.value)}
-                          className={`text-[10px] border-0 bg-transparent rounded-md text-center w-full py-0.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-                            entry?.status === 'sick' ? 'text-red-500 font-medium' : entry?.status === 'support' ? 'text-primary font-medium' : entry?.status === 'off' ? 'text-gray-400' : 'text-gray-300'
+                          className={`appearance-none border-0 text-[11px] text-center w-full py-1 rounded-lg cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                            entry?.status === 'sick' ? 'bg-red-50 text-red-600 font-medium'
+                            : entry?.status === 'support' ? 'bg-primary/10 text-primary font-medium'
+                            : entry?.status === 'off' ? 'bg-gray-100 text-gray-500 font-medium'
+                            : 'bg-transparent text-transparent hover:bg-gray-100'
                           }`}>
-                          <option value="">—</option>
-                          <option value="off">休假</option>
-                          <option value="sick">病假</option>
+                          <option value="" className="text-dark">正常上班</option>
+                          <option value="off" className="text-dark">休假</option>
+                          <option value="sick" className="text-dark">病假</option>
                           {stores.filter(s => s.id !== emp.store_id).map(s => (
-                            <option key={s.id} value={`support:${s.id}`}>支援{s.name}</option>
+                            <option key={s.id} value={`support:${s.id}`} className="text-dark">支援{s.name}</option>
                           ))}
                         </select>
                       </td>
