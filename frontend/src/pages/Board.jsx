@@ -1312,6 +1312,11 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
     .filter(e => e.store_id !== targetStoreId)
     .map(e => ({ emp: e, entry: entries[`${e.id}_${k}`] }))
     .filter(x => x.entry && x.entry.status === 'support' && String(x.entry.support_store_id) === String(targetStoreId))
+  // 其他分店同一天有誰請假/病假（跟「外援」相反：不是來支援，是純粹讓大家知道別家店今天少誰人）
+  const otherLeavesFor = (excludeStoreId, k) => allEmployees
+    .filter(e => e.store_id !== excludeStoreId)
+    .map(e => ({ emp: e, entry: entries[`${e.id}_${k}`] }))
+    .filter(x => x.entry && (x.entry.status === 'off' || x.entry.status === 'sick'))
 
   return (
     <div>
@@ -1362,6 +1367,7 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
                   <col style={{ width: '90px' }} />
                   {ownEmployees.map(emp => <col key={emp.id} />)}
                   <col style={{ width: '110px' }} />
+                  <col style={{ width: '140px' }} />
                 </colgroup>
                 <thead>
                   <tr>
@@ -1377,6 +1383,7 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
                       </th>
                     ))}
                     <th className="sticky top-0 bg-white px-2 py-2 border-b border-gray-100 text-center font-normal text-gray-400 z-10">外援</th>
+                    <th className="sticky top-0 bg-white px-2 py-2 border-b border-gray-100 text-center font-normal text-gray-400 z-10">其他分店請假</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1388,6 +1395,7 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
                     const isWeekStart = d.getDay() === 1
                     const rowBg = isToday ? 'bg-primary/5' : isHoliday ? 'bg-amber-50/50' : isWeekend ? 'bg-gray-50' : ''
                     const supporters = supportersFor(store.id, k)
+                    const otherLeaves = otherLeavesFor(store.id, k)
                     return (
                       <tr key={k} className={`${rowBg} ${isWeekStart ? 'border-t-2 border-t-gray-100' : ''}`}>
                         <td className={`sticky left-0 z-10 px-2 py-1.5 border-b border-gray-50 whitespace-nowrap ${isToday ? 'bg-primary text-white font-bold rounded-r-lg' : isHoliday ? 'bg-amber-50 text-amber-600 font-medium' : isWeekend ? 'bg-gray-50 text-gray-500' : 'bg-white text-gray-500'}`}
@@ -1437,6 +1445,17 @@ function ScheduleTab({ storeId, stores, isSuperAdmin }) {
                               {supporters.map(({ emp }) => (
                                 <span key={emp.id} className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-lg bg-teal-50 text-teal-700" title={`來自${emp.store_name}`}>
                                   🤝 {emp.name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        <td className="text-center px-1 py-1 border-b border-gray-50">
+                          {otherLeaves.length > 0 && (
+                            <div className="flex flex-wrap items-center justify-center gap-1">
+                              {otherLeaves.map(({ emp, entry }) => (
+                                <span key={emp.id} className={`inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-lg ${entry.status === 'sick' ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-500'}`} title={emp.store_name}>
+                                  {SCHEDULE_STATUS_LABEL[entry.status]} {emp.name}（{emp.store_name.replace('店', '').slice(0, 2)}）
                                 </span>
                               ))}
                             </div>
