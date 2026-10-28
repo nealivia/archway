@@ -381,7 +381,9 @@ router.get('/status-log', (req, res) => {
 // ================= 匯出 CSV（Excel 可直接開啟）=================
 // 用 CSV 而不是真的 .xlsx 二進位格式：不用額外套件、內容單純、Excel 雙擊就能開，維護起來也最不容易出錯。
 function csvCell(v) {
-  const s = v === null || v === undefined ? '' : String(v);
+  let s = v === null || v === undefined ? '' : String(v);
+  // 防 CSV 公式注入：開頭是 = + - @ 的內容，Excel 會當公式執行，前面加單引號讓它只是文字
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 function csvRow(arr) {
