@@ -13,7 +13,17 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const MAX_ATTEMPTS = 5;
 const LOCK_MS = 15 * 60 * 1000; // 15 分鐘
 const loginAttempts = new Map(); // key: username
-const otpAttempts = new Map();   // key: userId
+const otpAttempts = new Map();
+// 驗證碼 90 秒內只能用一次（防偷看/側錄到的驗證碼被重複使用）
+const usedCodes = new Map();
+function codeAlreadyUsed(userId, code) {
+  const now = Date.now();
+  for (const [k, exp] of usedCodes) if (now > exp) usedCodes.delete(k);
+  const key = `${userId}:${code}`;
+  if (usedCodes.has(key)) return true;
+  usedCodes.set(key, now + 90 * 1000);
+  return false;
+}   // key: userId
 
 function getInfo(map, key) {
   return map.get(key) || { attempts: 0, lockedUntil: null };
@@ -120,6 +130,10 @@ router.post('/2fa/verify-login', (req, res) => {
     window: 1
   });
 
+  if (valid && codeAlreadyUsed(user.id, String(code).replace(/\s/g, ''))) {
+    return res.status(401).json({ success: false, message: '此驗證碼已使用過，請等下一組新的驗證碼' });
+  }
+
   if (!valid) {
     const attempts = recordFailure(otpAttempts, otpKey);
     const remaining = MAX_ATTEMPTS - attempts;
@@ -143,6 +157,10 @@ router.post('/2fa/verify-login', (req, res) => {
 // ─── 2FA 設定：產生 QR code ─────────────────────────────────────────────────
 router.post('/2fa/setup', authenticateToken, async (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+
+  // 已啟用就不能重新產生金鑰（否則拿到登入狀態的人可以偷換金鑰、把本人鎖在外面）；要換請先停用
+  if (user.totp_enabled)
+    return res.status(400).json({ success: false, message: '已啟用雙因素驗證，如需重新設定請先停用' });
 
   const secret = speakeasy.generateSecret({
     name: `松上防水後台 (${user.username})`,
