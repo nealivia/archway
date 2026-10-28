@@ -93,7 +93,7 @@ router.post('/2fa/verify-login', (req, res) => {
 
   let decoded;
   try {
-    decoded = jwt.verify(tempToken, JWT_SECRET);
+    decoded = jwt.verify(tempToken, JWT_SECRET, { algorithms: ['HS256'] });
   } catch {
     return res.status(401).json({ success: false, message: '驗證已過期，請重新登入' });
   }

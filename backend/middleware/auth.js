@@ -16,7 +16,7 @@ function authenticateToken(req, res, next) {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
     const user = db.prepare('SELECT id, username, email, role, store_id, is_active FROM users WHERE id = ?').get(decoded.id);
 
     if (!user || !user.is_active) {
@@ -50,7 +50,7 @@ function generateToken(user) {
   return jwt.sign(
     { id: user.id, username: user.username, role: user.role },
     JWT_SECRET,
-    { expiresIn: '30d' }
+    { expiresIn: '7d' }
   );
 }
 

@@ -13,6 +13,11 @@ if (!JWT_SECRET || JWT_SECRET.length < 32 || JWT_SECRET.includes('請替換')) {
 }
 
 const app = express();
+
+// Railway 在反向代理後面：信任第一層代理，req.ip 才會是真實訪客 IP（限流/登入防護才有效）
+app.set('trust proxy', 1);
+app.disable('x-powered-by');
+const IS_PROD = process.env.NODE_ENV === 'production' || !!process.env.RAILWAY_ENVIRONMENT;
 const PORT = process.env.PORT || 5000;
 
 // ── 輕量 Rate Limiter（不需外部套件）───────────────────────────────────────
@@ -76,9 +81,24 @@ runHolidaySync();
 setInterval(runHolidaySync, 24 * 60 * 60 * 1000).unref();
 
 // Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// 基本安全標頭（等同 helmet 的核心項目，免安裝套件）
+app.use((req, res, next) => {
+  res.set({
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'SAMEORIGIN',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Strict-Transport-Security': 'max-age=15552000; includeSubDomains',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    'Cross-Origin-Opener-Policy': 'same-origin'
+  });
+  next();
+});
+
+// CORS 只允許自己的網站（前後端同網域，瀏覽器不需要跨網域；本機開發保留 localhost）
+const ALLOWED_ORIGINS = ['https://archway.tw', 'https://www.archway.tw', 'http://localhost:5173', 'http://localhost:5000'];
+app.use(cors({ origin: (origin, cb) => cb(null, !origin || ALLOWED_ORIGINS.includes(origin)) }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // 靜態檔案 - 上傳的圖片（優先使用 Volume 路徑）
 const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, 'uploads');
@@ -118,9 +138,11 @@ app.get('*', (req, res) => {
 // 全域錯誤處理
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(err.status || 500).json({
+  const status = err.status || 500;
+  res.status(status).json({
     success: false,
-    message: err.message || '伺服器錯誤'
+    // 正式環境不把內部錯誤細節回給訪客（4xx 的訊息如 JSON 格式錯誤仍可顯示）
+    message: (IS_PROD && status >= 500) ? '伺服器錯誤' : (err.message || '伺服器錯誤')
   });
 });
 

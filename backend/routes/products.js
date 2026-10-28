@@ -6,7 +6,9 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 // 公開 - 取得所有上架商品
 router.get('/', (req, res) => {
   const { category_id, search, page = 1, limit = 20 } = req.query;
-  const offset = (page - 1) * limit;
+  const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+  const limitNum = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+  const offset = (pageNum - 1) * limitNum;
 
   let where = ['p.is_active = 1'];
   let params = [];
@@ -30,7 +32,7 @@ router.get('/', (req, res) => {
     ${whereClause}
     ORDER BY c.sort_order ASC, c.name ASC, p.created_at ASC
     LIMIT ? OFFSET ?
-  `).all(...params, Number(limit), Number(offset));
+  `).all(...params, limitNum, offset);
 
   const parsed = products.map(p => ({
     ...p,
@@ -42,7 +44,7 @@ router.get('/', (req, res) => {
     reports: JSON.parse(p.reports || '[]')
   }));
 
-  res.json({ success: true, data: parsed, total: total.c, page: Number(page), limit: Number(limit) });
+  res.json({ success: true, data: parsed, total: total.c, page: pageNum, limit: limitNum });
 });
 
 // 公開 - 取得精選商品（首頁用，must be before /:id）
@@ -99,7 +101,9 @@ router.get('/:id', (req, res) => {
 // 後台 - 取得所有商品（含下架）
 router.get('/admin/all', authenticateToken, requireAdmin, (req, res) => {
   const { category_id, search, page = 1, limit = 20 } = req.query;
-  const offset = (page - 1) * limit;
+  const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+  const limitNum = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+  const offset = (pageNum - 1) * limitNum;
 
   let where = [];
   let params = [];
@@ -124,7 +128,7 @@ router.get('/admin/all', authenticateToken, requireAdmin, (req, res) => {
     ${whereClause}
     ORDER BY c.sort_order ASC, c.name ASC, p.created_at ASC
     LIMIT ? OFFSET ?
-  `).all(...params, Number(limit), Number(offset));
+  `).all(...params, limitNum, offset);
 
   const parsed = products.map(p => ({
     ...p,
